@@ -1,5 +1,6 @@
 import React, { useState, useEffect, createContext, useContext, useRef } from 'react';
 import { User, Users, MapPin, Calendar, Plus, Home, ArrowRight, Check, X, Settings, LogOut, ChevronDown, Phone, Clock, CheckCircle, ExternalLink } from 'lucide-react';
+import DB from './lib/database.js';
 
 // ============================================================================
 // LOGO COMPONENT
@@ -143,304 +144,10 @@ const BottomNav = () => {
 };
 
 // ============================================================================
-// STORAGE LAYER - Simulates backend with localStorage
+// DATABASE - Now using Supabase instead of localStorage
 // ============================================================================
-
-const DB = {
-  async init() {
-    if (!localStorage.getItem('carpool_db')) {
-      const initialData = {
-        users: [
-          { id: 1, email: 'admin@haworth.com', password: 'admin123', name: 'Admin User', phone: '201-555-0100', home_address: '123 Main St, Haworth, NJ', is_approved: true, is_admin: true },
-          { id: 2, email: 'sarah@email.com', password: 'pass123', name: 'Sarah Cohen', phone: '201-555-0101', home_address: '45 Oak Ave, Haworth, NJ', is_approved: true, is_admin: false },
-          { id: 3, email: 'michael@email.com', password: 'pass123', name: 'Michael Chen', phone: '201-555-0102', home_address: '67 Maple Dr, Haworth, NJ', is_approved: true, is_admin: false },
-          { id: 4, email: 'jessica@email.com', password: 'pass123', name: 'Jessica Williams', phone: '201-555-0103', home_address: '89 Pine Ln, Haworth, NJ', is_approved: true, is_admin: false }
-        ],
-        children: [
-          { id: 1, parent_id: 2, name: 'Emma Cohen', phone: '201-555-0201' },
-          { id: 2, parent_id: 2, name: 'Noah Cohen', phone: null },
-          { id: 3, parent_id: 3, name: 'Olivia Chen', phone: '201-555-0202' },
-          { id: 4, parent_id: 4, name: 'Liam Williams', phone: '201-555-0203' }
-        ],
-        pois: [
-          { id: 1, name: 'Israeli Scouts Meeting Hall', address: '100 Scout Way, Haworth, NJ' },
-          { id: 2, name: 'Haworth Tennis Courts', address: '200 Tennis Rd, Haworth, NJ' },
-          { id: 3, name: 'Community Center', address: '300 Center St, Haworth, NJ' },
-          { id: 4, name: 'Haworth School', address: '400 School Ave, Haworth, NJ' }
-        ],
-        groups: [
-          { id: 1, name: 'Israeli Scouts' },
-          { id: 2, name: 'Monday Night Tennis' },
-          { id: 3, name: 'School Carpool' }
-        ],
-        group_members: [
-          { id: 1, group_id: 1, user_id: 2 },
-          { id: 2, group_id: 1, user_id: 3 },
-          { id: 3, group_id: 2, user_id: 2 },
-          { id: 4, group_id: 2, user_id: 4 },
-          { id: 5, group_id: 3, user_id: 3 },
-          { id: 6, group_id: 3, user_id: 4 }
-        ],
-        ride_requests: [
-          { 
-            id: 1, 
-            group_id: 1, 
-            requester_id: 2, 
-            passenger_type: 'child', 
-            passenger_id: 1, 
-            direction: 'home_to_poi', 
-            poi_id: 1, 
-            ride_date: new Date().toISOString().split('T')[0],
-            status: 'open',
-            accepter_id: null,
-            created_at: new Date().toISOString(),
-            accepted_at: null,
-            completed_at: null
-          },
-          { 
-            id: 2, 
-            group_id: 1, 
-            requester_id: 3, 
-            passenger_type: 'child', 
-            passenger_id: 3, 
-            direction: 'poi_to_home', 
-            poi_id: 1, 
-            ride_date: new Date().toISOString().split('T')[0],
-            status: 'open',
-            accepter_id: null,
-            created_at: new Date(Date.now() - 3600000).toISOString(),
-            accepted_at: null,
-            completed_at: null
-          },
-          { 
-            id: 3, 
-            group_id: 1, 
-            requester_id: 2, 
-            passenger_type: 'child', 
-            passenger_id: 2, 
-            direction: 'home_to_poi', 
-            poi_id: 1, 
-            ride_date: new Date(Date.now() + 86400000).toISOString().split('T')[0],
-            status: 'open',
-            accepter_id: null,
-            created_at: new Date(Date.now() - 7200000).toISOString(),
-            accepted_at: null,
-            completed_at: null
-          },
-          { 
-            id: 4, 
-            group_id: 2, 
-            requester_id: 2, 
-            passenger_type: 'parent', 
-            passenger_id: 2, 
-            direction: 'home_to_poi', 
-            poi_id: 2, 
-            ride_date: new Date().toISOString().split('T')[0],
-            status: 'accepted',
-            accepter_id: 4,
-            created_at: new Date(Date.now() - 10800000).toISOString(),
-            accepted_at: new Date(Date.now() - 3600000).toISOString(),
-            completed_at: null
-          },
-          { 
-            id: 5, 
-            group_id: 2, 
-            requester_id: 4, 
-            passenger_type: 'child', 
-            passenger_id: 4, 
-            direction: 'poi_to_home', 
-            poi_id: 2, 
-            ride_date: new Date().toISOString().split('T')[0],
-            status: 'accepted',
-            accepter_id: 2,
-            created_at: new Date(Date.now() - 14400000).toISOString(),
-            accepted_at: new Date(Date.now() - 7200000).toISOString(),
-            completed_at: null
-          },
-          { 
-            id: 6, 
-            group_id: 3, 
-            requester_id: 3, 
-            passenger_type: 'child', 
-            passenger_id: 3, 
-            direction: 'home_to_poi', 
-            poi_id: 4, 
-            ride_date: new Date().toISOString().split('T')[0],
-            status: 'open',
-            accepter_id: null,
-            created_at: new Date(Date.now() - 1800000).toISOString(),
-            accepted_at: null,
-            completed_at: null
-          },
-          { 
-            id: 7, 
-            group_id: 3, 
-            requester_id: 4, 
-            passenger_type: 'child', 
-            passenger_id: 4, 
-            direction: 'home_to_poi', 
-            poi_id: 4, 
-            ride_date: new Date().toISOString().split('T')[0],
-            status: 'open',
-            accepter_id: null,
-            created_at: new Date(Date.now() - 5400000).toISOString(),
-            accepted_at: null,
-            completed_at: null
-          },
-          { 
-            id: 8, 
-            group_id: 1, 
-            requester_id: 2, 
-            passenger_type: 'child', 
-            passenger_id: 1, 
-            direction: 'poi_to_home', 
-            poi_id: 1, 
-            ride_date: new Date(Date.now() + 86400000).toISOString().split('T')[0],
-            status: 'open',
-            accepter_id: null,
-            created_at: new Date(Date.now() - 900000).toISOString(),
-            accepted_at: null,
-            completed_at: null
-          },
-          { 
-            id: 9, 
-            group_id: 2, 
-            requester_id: 2, 
-            passenger_type: 'parent', 
-            passenger_id: 2, 
-            direction: 'poi_to_home', 
-            poi_id: 2, 
-            ride_date: new Date(Date.now() + 86400000).toISOString().split('T')[0],
-            status: 'open',
-            accepter_id: null,
-            created_at: new Date(Date.now() - 21600000).toISOString(),
-            accepted_at: null,
-            completed_at: null
-          },
-          { 
-            id: 10, 
-            group_id: 3, 
-            requester_id: 4, 
-            passenger_type: 'child', 
-            passenger_id: 4, 
-            direction: 'poi_to_home', 
-            poi_id: 4, 
-            ride_date: new Date(Date.now() + 86400000).toISOString().split('T')[0],
-            status: 'completed',
-            accepter_id: 3,
-            created_at: new Date(Date.now() - 86400000).toISOString(),
-            accepted_at: new Date(Date.now() - 82800000).toISOString(),
-            completed_at: new Date(Date.now() - 79200000).toISOString()
-          },
-          { 
-            id: 11, 
-            group_id: 1, 
-            requester_id: 3, 
-            passenger_type: 'parent', 
-            passenger_id: 3, 
-            direction: 'home_to_poi', 
-            poi_id: 1, 
-            ride_date: new Date().toISOString().split('T')[0],
-            status: 'accepted',
-            accepter_id: 2,
-            created_at: new Date(Date.now() - 18000000).toISOString(),
-            accepted_at: new Date(Date.now() - 14400000).toISOString(),
-            completed_at: null
-          },
-          { 
-            id: 12, 
-            group_id: 2, 
-            requester_id: 4, 
-            passenger_type: 'parent', 
-            passenger_id: 4, 
-            direction: 'home_to_poi', 
-            poi_id: 2, 
-            ride_date: new Date(Date.now() + 86400000).toISOString().split('T')[0],
-            status: 'open',
-            accepter_id: null,
-            created_at: new Date(Date.now() - 25200000).toISOString(),
-            accepted_at: null,
-            completed_at: null
-          },
-          { 
-            id: 13, 
-            group_id: 3, 
-            requester_id: 3, 
-            passenger_type: 'child', 
-            passenger_id: 3, 
-            direction: 'poi_to_home', 
-            poi_id: 4, 
-            ride_date: new Date().toISOString().split('T')[0],
-            status: 'cancelled',
-            accepter_id: null,
-            created_at: new Date(Date.now() - 32400000).toISOString(),
-            accepted_at: null,
-            completed_at: null
-          }
-        ],
-        next_id: {
-          users: 5,
-          children: 5,
-          pois: 5,
-          groups: 4,
-          group_members: 7,
-          ride_requests: 14
-        }
-      };
-      localStorage.setItem('carpool_db', JSON.stringify(initialData));
-    }
-  },
-
-  async getData() {
-    const data = localStorage.getItem('carpool_db');
-    return JSON.parse(data);
-  },
-
-  async saveData(data) {
-    localStorage.setItem('carpool_db', JSON.stringify(data));
-  },
-
-  async query(table, filter = null) {
-    const data = await this.getData();
-    let results = data[table] || [];
-    if (filter) {
-      results = results.filter(filter);
-    }
-    return results;
-  },
-
-  async findOne(table, filter) {
-    const results = await this.query(table, filter);
-    return results[0] || null;
-  },
-
-  async create(table, record) {
-    const data = await this.getData();
-    const id = data.next_id[table];
-    const newRecord = { ...record, id };
-    data[table].push(newRecord);
-    data.next_id[table] = id + 1;
-    await this.saveData(data);
-    return newRecord;
-  },
-
-  async update(table, id, updates) {
-    const data = await this.getData();
-    const index = data[table].findIndex(r => r.id === id);
-    if (index !== -1) {
-      data[table][index] = { ...data[table][index], ...updates };
-      await this.saveData(data);
-      return data[table][index];
-    }
-    return null;
-  },
-
-  async delete(table, id) {
-    const data = await this.getData();
-    data[table] = data[table].filter(r => r.id !== id);
-    await this.saveData(data);
-  }
-};
+// The DB object is imported from ./lib/database.js
+// It provides the same interface as the previous localStorage implementation
 
 // ============================================================================
 // CONTEXT & AUTH
@@ -2610,18 +2317,23 @@ function GroupMemberManager({ group, users, onUpdate }) {
   const handleAddMember = async (e) => {
     e.preventDefault();
     if (selectedUserId) {
-      const userId = parseInt(selectedUserId);
-      const exists = await DB.findOne('group_members', m => m.group_id === group.id && m.user_id === userId);
-      if (exists) {
-        alert('User is already in this group');
-        return;
+      try {
+        const userId = parseInt(selectedUserId);
+        const exists = await DB.findOne('group_members', m => m.group_id === group.id && m.user_id === userId);
+        if (exists) {
+          alert('User is already in this group');
+          return;
+        }
+        await DB.create('group_members', { group_id: group.id, user_id: userId });
+        setSelectedUserId('');
+        setShowAddMember(false);
+        loadMembers();
+        onUpdate();
+        refresh();
+      } catch (error) {
+        console.error('Error adding member:', error);
+        alert('Failed to add member: ' + error.message);
       }
-      await DB.create('group_members', { group_id: group.id, user_id: userId });
-      setSelectedUserId('');
-      setShowAddMember(false);
-      loadMembers();
-      onUpdate();
-      refresh();
     }
   };
 

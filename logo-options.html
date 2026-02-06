@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Haworth Carpool - Logo Options (Tesla Style)</title>
+    <style>
+        body {
+            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+            margin: 0;
+            padding: 40px;
+            background: #000;
+            color: #fff;
+        }
+        h1 {
+            text-align: center;
+            margin-bottom: 10px;
+            color: #fff;
+            font-weight: 300;
+            font-size: 32px;
+            letter-spacing: 2px;
+        }
+        .subtitle {
+            text-align: center;
+            margin-bottom: 50px;
+            color: #888;
+            font-size: 14px;
+            font-weight: 300;
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 40px;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        .option {
+            background: #111;
+            border: 1px solid #222;
+            border-radius: 4px;
+            padding: 40px;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+        .option:hover {
+            border-color: #fff;
+            transform: translateY(-2px);
+        }
+        .option h3 {
+            margin: 25px 0 10px 0;
+            color: #fff;
+            font-weight: 400;
+            font-size: 18px;
+            letter-spacing: 1px;
+        }
+        .option p {
+            color: #888;
+            font-size: 13px;
+            margin: 0;
+            font-weight: 300;
+            line-height: 1.6;
+        }
+        .logo-container {
+            height: 180px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+        .preview-row {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            margin-top: 25px;
+            padding-top: 25px;
+            border-top: 1px solid #222;
+        }
+        .preview {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .preview.dark {
+            background: #000;
+            padding: 15px;
+            border-radius: 4px;
+        }
+        .preview.light {
+            background: #fff;
+            padding: 15px;
+            border-radius: 4px;
+        }
+        .label {
+            font-size: 11px;
+            color: #666;
+            margin-top: 8px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+    </style>
+</head>
+<body>
+    <h1>HAWORTH CARPOOL</h1>
+    <div class="subtitle">Logo Concepts — Tesla-Inspired Design Language</div>
+    <div class="grid">
+
+        <!-- Option 1: Shield H (Tesla T style) -->
+        <div class="option">
+            <div class="logo-container">
+                <svg width="140" height="140" viewBox="0 0 140 140" xmlns="http://www.w3.org/2000/svg">
+                    <!-- Shield outline -->
+                    <path d="M 70 10 L 120 30 L 120 80 Q 120 110, 70 130 Q 20 110, 20 80 L 20 30 Z"
+                          fill="none" stroke="#fff" stroke-width="1.5"/>
+                    <!-- Elegant H -->
+                    <line x1="50" y1="45" x2="50" y2="95" stroke="#fff" stroke-width="2"/>
+                    <line x1="90" y1="45" x2="90" y2="95" stroke="#fff" stroke-width="2"/>
+                    <rect x="50" y="68" width="40" height="4" fill="#fff"/>
+                </svg>
+            </div>
+            <h3>SHIELD</h3>
+            <p>Elegant shield emblem with ultra-thin lines. Premium automotive feel, inspired by Tesla's badge proportions.</p>
+            <div class="preview-row">
+                <div>
+                    <div class="preview dark">
+                        <svg width="50" height="50" viewBox="0 0 140 140">
+                            <path d="M 70 10 L 120 30 L 120 80 Q 120 110, 70 130 Q 20 110, 20 80 L 20 30 Z" fill="none" stroke="#fff" stroke-width="1.5"/>
+                            <line x1="50" y1="45" x2="50" y2="95" stroke="#fff" stroke-width="2"/>
+                            <line x1="90" y1="45" x2="90" y2="95" stroke="#fff" stroke-width="2"/>
+                            <rect x="50" y="68" width="40" height="4" fill="#fff"/>
+                        </svg>
+                    </div>
+                    <div class="label">Dark</div>
+                </div>
+                <div>
+                    <div class="preview light">
+                        <svg width="50" height="50" viewBox="0 0 140 140">
+                            <path d="M 70 10 L 120 30 L 120 80 Q 120 110, 70 130 Q 20 110, 20 80 L 20 30 Z" fill="none" stroke="#000" stroke-width="1.5"/>
+                            <line x1="50" y1="45" x2="50" y2="95" stroke="#000" stroke-width="2"/>
+                            <line x1="90" y1="45" x2="90" y2="95" stroke="#000" stroke-width="2"/>
+                            <rect x="50" y="68" width="40" height="4" fill="#000"/>
+                        </svg>
+                    </div>
+                    <div class="label">Light</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Option 2: Technical H (Motor cross-section style) -->
+        <div class="option">
+            <div class="logo-container">
+                <svg width="140" height="140" viewBox="0 0 140 140" xmlns="http://www.w3.org/2000/svg">
+                    <!-- Outer ring -->
+                    <circle cx="70" cy="70" r="60" fill="none" stroke="#fff" stroke-width="1"/>
+                    <!-- H as motor components -->
+                    <line x1="48" y1="40" x2="48" y2="100" stroke="#fff" stroke-width="3"/>
+                    <line x1="92" y1="40" x2="92" y2="100" stroke="#fff" stroke-width="3"/>
+                    <!-- Center bar with technical details -->
+                    <rect x="48" y="67" width="44" height="6" fill="#fff"/>
+                    <!-- Technical accent lines -->
+                    <line x1="48" y1="40" x2="40" y2="32" stroke="#fff" stroke-width="1"/>
+                    <line x1="92" y1="40" x2="100" y2="32" stroke="#fff" stroke-width="1"/>
+                    <line x1="48" y1="100" x2="40" y2="108" stroke="#fff" stroke-width="1"/>
+                    <line x1="92" y1="100" x2="100" y2="108" stroke="#fff" stroke-width="1"/>
+                </svg>
+            </div>
+            <h3>TECHNICAL</h3>
+            <p>H designed like a technical schematic or motor cross-section. Echoes Tesla's engineering-first aesthetic.</p>
+            <div class="preview-row">
+                <div>
+                    <div class="preview dark">
+                        <svg width="50" height="50" viewBox="0 0 140 140">
+                            <circle cx="70" cy="70" r="60" fill="none" stroke="#fff" stroke-width="1"/>
+                            <line x1="48" y1="40" x2="48" y2="100" stroke="#fff" stroke-width="3"/>
+                            <line x1="92" y1="40" x2="92" y2="100" stroke="#fff" stroke-width="3"/>
+                            <rect x="48" y="67" width="44" height="6" fill="#fff"/>
+                            <line x1="48" y1="40" x2="40" y2="32" stroke="#fff" stroke-width="1"/>
+                            <line x1="92" y1="40" x2="100" y2="32" stroke="#fff" stroke-width="1"/>
+                            <line x1="48" y1="100" x2="40" y2="108" stroke="#fff" stroke-width="1"/>
+                            <line x1="92" y1="100" x2="100" y2="108" stroke="#fff" stroke-width="1"/>
+                        </svg>
+                    </div>
+                    <div class="label">Dark</div>
+                </div>
+                <div>
+                    <div class="preview light">
+                        <svg width="50" height="50" viewBox="0 0 140 140">
+                            <circle cx="70" cy="70" r="60" fill="none" stroke="#000" stroke-width="1"/>
+                            <line x1="48" y1="40" x2="48" y2="100" stroke="#000" stroke-width="3"/>
+                            <line x1="92" y1="40" x2="92" y2="100" stroke="#000" stroke-width="3"/>
+                            <rect x="48" y="67" width="44" height="6" fill="#000"/>
+                            <line x1="48" y1="40" x2="40" y2="32" stroke="#000" stroke-width="1"/>
+                            <line x1="92" y1="40" x2="100" y2="32" stroke="#000" stroke-width="1"/>
+                            <line x1="48" y1="100" x2="40" y2="108" stroke="#000" stroke-width="1"/>
+                            <line x1="92" y1="100" x2="100" y2="108" stroke="#000" stroke-width="1"/>
+                        </svg>
+                    </div>
+                    <div class="label">Light</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Option 3: Minimal Monoline H -->
+        <div class="option">
+            <div class="logo-container">
+                <svg width="100" height="100" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M 25 20 L 25 80 M 75 20 L 75 80 M 25 50 L 75 50"
+                          stroke="#fff" stroke-width="2.5" stroke-linecap="square" fill="none"/>
+                </svg>
+            </div>
+            <h3>MONOLINE</h3>
+            <p>Pure minimalism. Single-weight lines, perfect symmetry. Tesla's "less is more" philosophy distilled.</p>
+            <div class="preview-row">
+                <div>
+                    <div class="preview dark">
+                        <svg width="50" height="50" viewBox="0 0 100 100">
+                            <path d="M 25 20 L 25 80 M 75 20 L 75 80 M 25 50 L 75 50"
+                                  stroke="#fff" stroke-width="2.5" stroke-linecap="square" fill="none"/>
+                        </svg>
+                    </div>
+                    <div class="label">Dark</div>
+                </div>
+                <div>
+                    <div class="preview light">
+                        <svg width="50" height="50" viewBox="0 0 100 100">
+                            <path d="M 25 20 L 25 80 M 75 20 L 75 80 M 25 50 L 75 50"
+                                  stroke="#000" stroke-width="2.5" stroke-linecap="square" fill="none"/>
+                        </svg>
+                    </div>
+                    <div class="label">Light</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Option 4: Chrome H with depth -->
+        <div class="option">
+            <div class="logo-container">
+                <svg width="120" height="120" viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
+                    <defs>
+                        <linearGradient id="chrome" x1="0%" y1="0%" x2="0%" y2="100%">
+                            <stop offset="0%" style="stop-color:#fff;stop-opacity:1" />
+                            <stop offset="50%" style="stop-color:#ddd;stop-opacity:1" />
+                            <stop offset="51%" style="stop-color:#aaa;stop-opacity:1" />
+                            <stop offset="100%" style="stop-color:#fff;stop-opacity:1" />
+                        </linearGradient>
+                    </defs>
+                    <path d="M 35 25 L 35 95 L 45 95 L 45 65 L 75 65 L 75 95 L 85 95 L 85 25 L 75 25 L 75 55 L 45 55 L 45 25 Z"
+                          fill="url(#chrome)"/>
+                </svg>
+            </div>
+            <h3>CHROME</h3>
+            <p>Metallic gradient giving 3D depth. Automotive luxury material aesthetic, like Tesla's actual badges.</p>
+            <div class="preview-row">
+                <div>
+                    <div class="preview dark">
+                        <svg width="50" height="50" viewBox="0 0 120 120">
+                            <defs>
+                                <linearGradient id="chrome-sm" x1="0%" y1="0%" x2="0%" y2="100%">
+                                    <stop offset="0%" style="stop-color:#fff;stop-opacity:1" />
+                                    <stop offset="50%" style="stop-color:#ddd;stop-opacity:1" />
+                                    <stop offset="51%" style="stop-color:#aaa;stop-opacity:1" />
+                                    <stop offset="100%" style="stop-color:#fff;stop-opacity:1" />
+                                </linearGradient>
+                            </defs>
+                            <path d="M 35 25 L 35 95 L 45 95 L 45 65 L 75 65 L 75 95 L 85 95 L 85 25 L 75 25 L 75 55 L 45 55 L 45 25 Z"
+                                  fill="url(#chrome-sm)"/>
+                        </svg>
+                    </div>
+                    <div class="label">Dark</div>
+                </div>
+                <div>
+                    <div class="preview light">
+                        <svg width="50" height="50" viewBox="0 0 120 120">
+                            <path d="M 35 25 L 35 95 L 45 95 L 45 65 L 75 65 L 75 95 L 85 95 L 85 25 L 75 25 L 75 55 L 45 55 L 45 25 Z"
+                                  fill="#1a1a1a"/>
+                        </svg>
+                    </div>
+                    <div class="label">Light</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Option 5: Wordmark Style -->
+        <div class="option">
+            <div class="logo-container">
+                <svg width="180" height="80" viewBox="0 0 180 80" xmlns="http://www.w3.org/2000/svg">
+                    <!-- Stylized H -->
+                    <path d="M 20 20 L 20 60 M 45 20 L 45 60 M 20 40 L 45 40"
+                          stroke="#fff" stroke-width="3" stroke-linecap="square" fill="none"/>
+                    <!-- HAWORTH text -->
+                    <text x="65" y="45" font-family="Helvetica Neue, Helvetica, Arial" font-size="20"
+                          font-weight="300" fill="#fff" letter-spacing="3">HAWORTH</text>
+                </svg>
+            </div>
+            <h3>WORDMARK</h3>
+            <p>Combines mark with typography. Clean sans-serif like Tesla's branding. Professional and scalable.</p>
+            <div class="preview-row">
+                <div>
+                    <div class="preview dark">
+                        <svg width="90" height="40" viewBox="0 0 180 80">
+                            <path d="M 20 20 L 20 60 M 45 20 L 45 60 M 20 40 L 45 40"
+                                  stroke="#fff" stroke-width="3" stroke-linecap="square" fill="none"/>
+                            <text x="65" y="45" font-family="Helvetica Neue, Helvetica, Arial" font-size="20"
+                                  font-weight="300" fill="#fff" letter-spacing="3">HAWORTH</text>
+                        </svg>
+                    </div>
+                    <div class="label">Dark</div>
+                </div>
+                <div>
+                    <div class="preview light">
+                        <svg width="90" height="40" viewBox="0 0 180 80">
+                            <path d="M 20 20 L 20 60 M 45 20 L 45 60 M 20 40 L 45 40"
+                                  stroke="#000" stroke-width="3" stroke-linecap="square" fill="none"/>
+                            <text x="65" y="45" font-family="Helvetica Neue, Helvetica, Arial" font-size="20"
+                                  font-weight="300" fill="#000" letter-spacing="3">HAWORTH</text>
+                        </svg>
+                    </div>
+                    <div class="label">Light</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Option 6: Road Bridge H -->
+        <div class="option">
+            <div class="logo-container">
+                <svg width="140" height="140" viewBox="0 0 140 140" xmlns="http://www.w3.org/2000/svg">
+                    <!-- Outer subtle circle -->
+                    <circle cx="70" cy="70" r="62" fill="none" stroke="#fff" stroke-width="0.5" opacity="0.3"/>
+                    <!-- H as bridge/highway -->
+                    <line x1="45" y1="35" x2="45" y2="105" stroke="#fff" stroke-width="2.5"/>
+                    <line x1="95" y1="35" x2="95" y2="105" stroke="#fff" stroke-width="2.5"/>
+                    <!-- Bridge span -->
+                    <rect x="45" y="67" width="50" height="6" fill="#fff"/>
+                    <!-- Road lines on bridge -->
+                    <line x1="52" y1="70" x2="60" y2="70" stroke="#000" stroke-width="0.8"/>
+                    <line x1="68" y1="70" x2="76" y2="70" stroke="#000" stroke-width="0.8"/>
+                    <line x1="84" y1="70" x2="92" y2="70" stroke="#000" stroke-width="0.8"/>
+                    <!-- Support lines -->
+                    <line x1="45" y1="67" x2="35" y2="60" stroke="#fff" stroke-width="1" opacity="0.5"/>
+                    <line x1="95" y1="67" x2="105" y2="60" stroke="#fff" stroke-width="1" opacity="0.5"/>
+                </svg>
+            </div>
+            <h3>BRIDGE</h3>
+            <p>H as highway bridge infrastructure. Subtle engineering details. Connects communities literally and figuratively.</p>
+            <div class="preview-row">
+                <div>
+                    <div class="preview dark">
+                        <svg width="50" height="50" viewBox="0 0 140 140">
+                            <circle cx="70" cy="70" r="62" fill="none" stroke="#fff" stroke-width="0.5" opacity="0.3"/>
+                            <line x1="45" y1="35" x2="45" y2="105" stroke="#fff" stroke-width="2.5"/>
+                            <line x1="95" y1="35" x2="95" y2="105" stroke="#fff" stroke-width="2.5"/>
+                            <rect x="45" y="67" width="50" height="6" fill="#fff"/>
+                            <line x1="52" y1="70" x2="60" y2="70" stroke="#000" stroke-width="0.8"/>
+                            <line x1="68" y1="70" x2="76" y2="70" stroke="#000" stroke-width="0.8"/>
+                            <line x1="84" y1="70" x2="92" y2="70" stroke="#000" stroke-width="0.8"/>
+                            <line x1="45" y1="67" x2="35" y2="60" stroke="#fff" stroke-width="1" opacity="0.5"/>
+                            <line x1="95" y1="67" x2="105" y2="60" stroke="#fff" stroke-width="1" opacity="0.5"/>
+                        </svg>
+                    </div>
+                    <div class="label">Dark</div>
+                </div>
+                <div>
+                    <div class="preview light">
+                        <svg width="50" height="50" viewBox="0 0 140 140">
+                            <circle cx="70" cy="70" r="62" fill="none" stroke="#000" stroke-width="0.5" opacity="0.3"/>
+                            <line x1="45" y1="35" x2="45" y2="105" stroke="#000" stroke-width="2.5"/>
+                            <line x1="95" y1="35" x2="95" y2="105" stroke="#000" stroke-width="2.5"/>
+                            <rect x="45" y="67" width="50" height="6" fill="#000"/>
+                            <line x1="52" y1="70" x2="60" y2="70" stroke="#fff" stroke-width="0.8"/>
+                            <line x1="68" y1="70" x2="76" y2="70" stroke="#fff" stroke-width="0.8"/>
+                            <line x1="84" y1="70" x2="92" y2="70" stroke="#fff" stroke-width="0.8"/>
+                            <line x1="45" y1="67" x2="35" y2="60" stroke="#000" stroke-width="1" opacity="0.5"/>
+                            <line x1="95" y1="67" x2="105" y2="60" stroke="#000" stroke-width="1" opacity="0.5"/>
+                        </svg>
+                    </div>
+                    <div class="label">Light</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Option 7: Electric Current H -->
+        <div class="option">
+            <div class="logo-container">
+                <svg width="110" height="110" viewBox="0 0 110 110" xmlns="http://www.w3.org/2000/svg">
+                    <!-- H structure -->
+                    <line x1="30" y1="25" x2="30" y2="85" stroke="#fff" stroke-width="2.5"/>
+                    <line x1="80" y1="25" x2="80" y2="85" stroke="#fff" stroke-width="2.5"/>
+                    <!-- Center bar with energy feel -->
+                    <rect x="30" y="52" width="50" height="6" fill="#fff"/>
+                    <!-- Energy nodes -->
+                    <circle cx="30" cy="55" r="4" fill="#fff"/>
+                    <circle cx="55" cy="55" r="3" fill="#fff"/>
+                    <circle cx="80" cy="55" r="4" fill="#fff"/>
+                </svg>
+            </div>
+            <h3>ELECTRIC</h3>
+            <p>Nodes suggest electric current or connection points. Subtle nod to Tesla's electric vehicle heritage.</p>
+            <div class="preview-row">
+                <div>
+                    <div class="preview dark">
+                        <svg width="50" height="50" viewBox="0 0 110 110">
+                            <line x1="30" y1="25" x2="30" y2="85" stroke="#fff" stroke-width="2.5"/>
+                            <line x1="80" y1="25" x2="80" y2="85" stroke="#fff" stroke-width="2.5"/>
+                            <rect x="30" y="52" width="50" height="6" fill="#fff"/>
+                            <circle cx="30" cy="55" r="4" fill="#fff"/>
+                            <circle cx="55" cy="55" r="3" fill="#fff"/>
+                            <circle cx="80" cy="55" r="4" fill="#fff"/>
+                        </svg>
+                    </div>
+                    <div class="label">Dark</div>
+                </div>
+                <div>
+                    <div class="preview light">
+                        <svg width="50" height="50" viewBox="0 0 110 110">
+                            <line x1="30" y1="25" x2="30" y2="85" stroke="#000" stroke-width="2.5"/>
+                            <line x1="80" y1="25" x2="80" y2="85" stroke="#000" stroke-width="2.5"/>
+                            <rect x="30" y="52" width="50" height="6" fill="#000"/>
+                            <circle cx="30" cy="55" r="4" fill="#000"/>
+                            <circle cx="55" cy="55" r="3" fill="#000"/>
+                            <circle cx="80" cy="55" r="4" fill="#000"/>
+                        </svg>
+                    </div>
+                    <div class="label">Light</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Option 8: Letterpress H -->
+        <div class="option">
+            <div class="logo-container">
+                <svg width="100" height="100" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+                    <defs>
+                        <filter id="shadow">
+                            <feDropShadow dx="0" dy="2" stdDeviation="3" flood-opacity="0.3"/>
+                        </filter>
+                    </defs>
+                    <!-- Clean H with subtle shadow -->
+                    <path d="M 25 20 L 32 20 L 32 46 L 68 46 L 68 20 L 75 20 L 75 80 L 68 80 L 68 53 L 32 53 L 32 80 L 25 80 Z"
+                          fill="#fff" filter="url(#shadow)"/>
+                </svg>
+            </div>
+            <h3>PRECISION</h3>
+            <p>Refined proportions with subtle depth. Premium feel without being loud. Tesla's quiet confidence.</p>
+            <div class="preview-row">
+                <div>
+                    <div class="preview dark">
+                        <svg width="50" height="50" viewBox="0 0 100 100">
+                            <defs>
+                                <filter id="shadow-sm">
+                                    <feDropShadow dx="0" dy="2" stdDeviation="3" flood-opacity="0.3"/>
+                                </filter>
+                            </defs>
+                            <path d="M 25 20 L 32 20 L 32 46 L 68 46 L 68 20 L 75 20 L 75 80 L 68 80 L 68 53 L 32 53 L 32 80 L 25 80 Z"
+                                  fill="#fff" filter="url(#shadow-sm)"/>
+                        </svg>
+                    </div>
+                    <div class="label">Dark</div>
+                </div>
+                <div>
+                    <div class="preview light">
+                        <svg width="50" height="50" viewBox="0 0 100 100">
+                            <path d="M 25 20 L 32 20 L 32 46 L 68 46 L 68 20 L 75 20 L 75 80 L 68 80 L 68 53 L 32 53 L 32 80 L 25 80 Z"
+                                  fill="#1a1a1a"/>
+                        </svg>
+                    </div>
+                    <div class="label">Light</div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</body>
+</html>
