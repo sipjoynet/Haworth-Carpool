@@ -170,9 +170,28 @@ export default function CarpoolApp() {
   const [activeGroup, setActiveGroup] = useState(null);
   const [screen, setScreen] = useState('login');
   const [refreshKey, setRefreshKey] = useState(0);
+  const [initError, setInitError] = useState(null);
+  const [isInitialized, setIsInitialized] = useState(false);
 
   useEffect(() => {
-    DB.init();
+    const initializeApp = async () => {
+      try {
+        console.log('🔄 Initializing Haworth Carpool...');
+        console.log('Environment check:', {
+          supabaseUrl: import.meta.env.VITE_SUPABASE_URL ? '✅ Set' : '❌ Missing',
+          supabaseKey: import.meta.env.VITE_SUPABASE_ANON_KEY ? '✅ Set' : '❌ Missing'
+        });
+
+        await DB.init();
+        console.log('✅ Database initialized successfully');
+        setIsInitialized(true);
+      } catch (error) {
+        console.error('❌ Failed to initialize app:', error);
+        setInitError(error.message || 'Failed to initialize database');
+      }
+    };
+
+    initializeApp();
   }, []);
 
   const refresh = () => setRefreshKey(k => k + 1);
@@ -187,6 +206,93 @@ export default function CarpoolApp() {
     refresh,
     refreshKey
   };
+
+  // Show error state if initialization failed
+  if (initError) {
+    return (
+      <div style={{
+        minHeight: '100vh',
+        background: '#ffffff',
+        fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '20px'
+      }}>
+        <div style={{
+          maxWidth: '500px',
+          padding: '32px',
+          background: '#fff5f5',
+          border: '2px solid #fc8181',
+          borderRadius: '12px',
+          textAlign: 'center'
+        }}>
+          <div style={{ fontSize: '48px', marginBottom: '16px' }}>⚠️</div>
+          <h1 style={{ fontSize: '24px', fontWeight: '600', color: '#c53030', marginBottom: '12px' }}>
+            Initialization Error
+          </h1>
+          <p style={{ fontSize: '16px', color: '#742a2a', marginBottom: '16px' }}>
+            {initError}
+          </p>
+          <details style={{
+            marginTop: '16px',
+            padding: '12px',
+            background: '#ffffff',
+            borderRadius: '8px',
+            textAlign: 'left',
+            fontSize: '14px'
+          }}>
+            <summary style={{ cursor: 'pointer', fontWeight: '600', marginBottom: '8px' }}>
+              Troubleshooting
+            </summary>
+            <ul style={{ paddingLeft: '20px', color: '#4a5568' }}>
+              <li>Check that VITE_SUPABASE_URL is set in environment variables</li>
+              <li>Check that VITE_SUPABASE_ANON_KEY is set in environment variables</li>
+              <li>Verify Supabase project is active and accessible</li>
+              <li>Check browser console for detailed error messages</li>
+            </ul>
+          </details>
+          <button
+            onClick={() => window.location.reload()}
+            style={{
+              marginTop: '16px',
+              padding: '12px 24px',
+              background: '#667eea',
+              color: 'white',
+              border: 'none',
+              borderRadius: '8px',
+              cursor: 'pointer',
+              fontSize: '14px',
+              fontWeight: '600'
+            }}
+          >
+            Retry
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // Show loading state while initializing
+  if (!isInitialized) {
+    return (
+      <div style={{
+        minHeight: '100vh',
+        background: '#ffffff',
+        fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center'
+      }}>
+        <div style={{ textAlign: 'center' }}>
+          <Logo size={80} color="#667eea" />
+          <p style={{ marginTop: '20px', fontSize: '16px', color: '#4a5568' }}>
+            Initializing...
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <AppContext.Provider value={contextValue}>
