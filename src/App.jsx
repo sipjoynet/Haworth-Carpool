@@ -143,124 +143,6 @@ const BottomNav = () => {
 };
 
 // ============================================================================
-// MAP COMPONENT FOR PICKUP LOCATIONS
-// ============================================================================
-
-const PickupMap = ({ rides }) => {
-  const mapRef = useRef(null);
-  const [map, setMap] = useState(null);
-  const [geocoder, setGeocoder] = useState(null);
-
-  useEffect(() => {
-    if (!mapRef.current || !window.google) return;
-
-    // Initialize map centered on Haworth, NJ
-    const newMap = new window.google.maps.Map(mapRef.current, {
-      center: { lat: 40.9606, lng: -73.9915 }, // Haworth, NJ
-      zoom: 13,
-      styles: [
-        {
-          featureType: 'all',
-          elementType: 'geometry',
-          stylers: [{ color: '#f5f5f5' }]
-        },
-        {
-          featureType: 'road',
-          elementType: 'geometry',
-          stylers: [{ color: '#ffffff' }]
-        },
-        {
-          featureType: 'water',
-          elementType: 'geometry',
-          stylers: [{ color: '#c9e9f6' }]
-        }
-      ],
-      disableDefaultUI: true,
-      zoomControl: true,
-      mapTypeControl: false,
-      streetViewControl: false,
-      fullscreenControl: true
-    });
-
-    setMap(newMap);
-    setGeocoder(new window.google.maps.Geocoder());
-  }, [mapRef.current, window.google]);
-
-  useEffect(() => {
-    if (!map || !geocoder || !rides || rides.length === 0) return;
-
-    const bounds = new window.google.maps.LatLngBounds();
-
-    rides.forEach(async (ride) => {
-      try {
-        const address = ride.direction === 'home_to_poi'
-          ? ride.requester.home_address
-          : ride.poi.address;
-
-        const result = await geocoder.geocode({ address });
-
-        if (result.results[0]) {
-          const position = result.results[0].geometry.location;
-
-          const marker = new window.google.maps.Marker({
-            position,
-            map,
-            title: ride.direction === 'home_to_poi'
-              ? `Pickup: ${ride.passenger.name}`
-              : `Drop-off: ${ride.passenger.name}`,
-            icon: {
-              path: window.google.maps.SymbolPath.CIRCLE,
-              scale: 10,
-              fillColor: '#000000',
-              fillOpacity: 1,
-              strokeColor: '#ffffff',
-              strokeWeight: 2
-            }
-          });
-
-          const infoWindow = new window.google.maps.InfoWindow({
-            content: `
-              <div style="font-family: Inter, sans-serif; padding: 8px;">
-                <div style="font-weight: 600; margin-bottom: 4px;">${ride.passenger.name}</div>
-                <div style="font-size: 13px; color: #666;">${address}</div>
-                <div style="font-size: 12px; color: #999; margin-top: 4px;">
-                  ${ride.direction === 'home_to_poi' ? 'Pickup' : 'Drop-off'}
-                </div>
-              </div>
-            `
-          });
-
-          marker.addListener('click', () => {
-            infoWindow.open(map, marker);
-          });
-
-          bounds.extend(position);
-        }
-      } catch (error) {
-        console.error('Geocoding error:', error);
-      }
-    });
-
-    if (rides.length > 0) {
-      map.fitBounds(bounds);
-    }
-  }, [map, geocoder, rides]);
-
-  return (
-    <div
-      ref={mapRef}
-      style={{
-        width: '100%',
-        height: '400px',
-        borderRadius: '12px',
-        overflow: 'hidden',
-        boxShadow: '0 1px 3px rgba(0,0,0,0.08)'
-      }}
-    />
-  );
-};
-
-// ============================================================================
 // STORAGE LAYER - Simulates backend with localStorage
 // ============================================================================
 
@@ -1279,7 +1161,6 @@ function FeedScreen() {
   const [rides, setRides] = useState([]);
   const [pastRides, setPastRides] = useState([]);
   const [filter, setFilter] = useState('open');
-  const [ridesWithDetails, setRidesWithDetails] = useState([]);
   const { isMobile } = useWindowSize();
 
   useEffect(() => {
@@ -1290,20 +1171,6 @@ function FeedScreen() {
     const rideDate = new Date(ride.ride_date);
     const oneDayAgo = new Date(Date.now() - 86400000); // 24 hours ago
     return rideDate < oneDayAgo;
-  };
-
-  const loadRideDetails = async (ride) => {
-    const requester = await DB.findOne('users', u => u.id === ride.requester_id);
-    const poi = await DB.findOne('pois', p => p.id === ride.poi_id);
-    let passenger;
-
-    if (ride.passenger_type === 'parent') {
-      passenger = requester;
-    } else {
-      passenger = await DB.findOne('children', c => c.id === ride.passenger_id);
-    }
-
-    return { ...ride, requester, passenger, poi };
   };
 
   const loadRides = async () => {
@@ -1335,17 +1202,11 @@ function FeedScreen() {
 
       setRides(currentRides);
       setPastRides(oldRides);
-      setRidesWithDetails([]);
       return;
     } else if (filter === 'accepted') {
       rideRequests = rideRequests.filter(r =>
         r.accepter_id === currentUser.id && (r.status === 'accepted' || r.status === 'completed') && !isRideOld(r)
       );
-
-      // Load details for map view
-      const ridesWithDetailsPromises = rideRequests.map(loadRideDetails);
-      const detailedRides = await Promise.all(ridesWithDetailsPromises);
-      setRidesWithDetails(detailedRides);
     } else if (filter === 'all') {
       rideRequests = rideRequests.filter(r => !isRideOld(r));
     }
@@ -1360,10 +1221,6 @@ function FeedScreen() {
 
     setRides(rideRequests);
     setPastRides([]);
-
-    if (filter !== 'accepted') {
-      setRidesWithDetails([]);
-    }
   };
 
   return (
@@ -1486,21 +1343,6 @@ function FeedScreen() {
         </div>
       ) : (
         <>
-          {filter === 'accepted' && ridesWithDetails.length > 0 && (
-            <div style={{ marginBottom: '24px' }}>
-              <h3 style={{
-                fontSize: '16px',
-                fontWeight: '600',
-                color: '#171717',
-                marginBottom: '12px',
-                letterSpacing: '-0.3px'
-              }}>
-                Pickup Locations
-              </h3>
-              <PickupMap rides={ridesWithDetails} />
-            </div>
-          )}
-
           {rides.length > 0 && (
             <div style={{ display: 'grid', gap: '12px', marginBottom: pastRides.length > 0 ? '32px' : '0' }}>
               {rides.map(ride => (
