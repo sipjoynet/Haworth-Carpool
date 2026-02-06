@@ -45,6 +45,104 @@ const AddressWithLink = ({ address, style = {} }) => {
 };
 
 // ============================================================================
+// RESPONSIVE HOOK
+// ============================================================================
+
+const useWindowSize = () => {
+  const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth <= 768);
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  return { isMobile, width: window.innerWidth };
+};
+
+// ============================================================================
+// BOTTOM NAVIGATION (MOBILE ONLY)
+// ============================================================================
+
+const BottomNav = () => {
+  const { currentUser, screen, setScreen, activeGroup, setActiveGroup } = useApp();
+  const { isMobile } = useWindowSize();
+
+  if (!isMobile) return null;
+
+  const navItems = [
+    { key: 'groups', icon: Users, label: 'Groups', show: true },
+    { key: 'feed', icon: Home, label: 'Rides', show: !!activeGroup },
+    { key: 'profile', icon: User, label: 'Profile', show: true },
+    { key: 'admin', icon: Settings, label: 'Admin', show: currentUser?.is_admin }
+  ].filter(item => item.show);
+
+  const handleNavClick = (key) => {
+    if (key === 'groups') {
+      setActiveGroup(null);
+      setScreen('groups');
+    } else {
+      setScreen(key);
+    }
+  };
+
+  return (
+    <div style={{
+      position: 'fixed',
+      bottom: 0,
+      left: 0,
+      right: 0,
+      background: 'white',
+      borderTop: '1px solid #f0f0f0',
+      display: 'flex',
+      justifyContent: 'space-around',
+      alignItems: 'center',
+      padding: '8px 0 calc(8px + env(safe-area-inset-bottom))',
+      boxShadow: '0 -2px 8px rgba(0,0,0,0.05)',
+      zIndex: 1000
+    }}>
+      {navItems.map(item => {
+        const Icon = item.icon;
+        const isActive = screen === item.key || (item.key === 'feed' && screen === 'create_ride') || (item.key === 'feed' && screen === 'group_settings');
+
+        return (
+          <button
+            key={item.key}
+            onClick={() => handleNavClick(item.key)}
+            style={{
+              flex: 1,
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              gap: '4px',
+              background: 'none',
+              border: 'none',
+              padding: '8px',
+              cursor: 'pointer',
+              color: isActive ? '#000' : '#999',
+              transition: 'color 0.2s',
+              minWidth: 0
+            }}
+          >
+            <Icon size={22} strokeWidth={isActive ? 2.5 : 2} />
+            <span style={{
+              fontSize: '11px',
+              fontWeight: isActive ? '600' : '500',
+              letterSpacing: '-0.1px'
+            }}>
+              {item.label}
+            </span>
+          </button>
+        );
+      })}
+    </div>
+  );
+};
+
+// ============================================================================
 // MAP COMPONENT FOR PICKUP LOCATIONS
 // ============================================================================
 
@@ -533,6 +631,7 @@ function LoginScreen() {
     phone: '',
     home_address: ''
   });
+  const { isMobile } = useWindowSize();
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -588,28 +687,28 @@ function LoginScreen() {
   };
 
   return (
-    <div style={{ 
-      display: 'flex', 
-      alignItems: 'center', 
-      justifyContent: 'center', 
+    <div style={{
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
       minHeight: '100vh',
-      padding: '20px',
+      padding: isMobile ? '16px' : '20px',
       background: '#000'
     }}>
       <div style={{
         background: 'white',
         borderRadius: '8px',
-        padding: '48px 40px',
+        padding: isMobile ? '32px 24px' : '48px 40px',
         maxWidth: '400px',
         width: '100%',
         boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
       }}>
-        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '24px' }}>
-          <Logo size={80} color="#000" />
+        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: isMobile ? '20px' : '24px' }}>
+          <Logo size={isMobile ? 64 : 80} color="#000" />
         </div>
         <h1 style={{
           margin: '0 0 8px 0',
-          fontSize: '36px',
+          fontSize: isMobile ? '28px' : '36px',
           fontWeight: '700',
           color: '#000',
           letterSpacing: '-0.5px',
@@ -810,11 +909,20 @@ function LoginScreen() {
 
 function MainApp() {
   const { currentUser, screen, setScreen, activeGroup } = useApp();
+  const { isMobile } = useWindowSize();
 
   return (
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
       <Header />
-      <div style={{ flex: 1, padding: '20px', maxWidth: '1200px', width: '100%', margin: '0 auto', boxSizing: 'border-box' }}>
+      <div style={{
+        flex: 1,
+        padding: isMobile ? '16px' : '20px',
+        paddingBottom: isMobile ? 'calc(80px + env(safe-area-inset-bottom))' : '20px',
+        maxWidth: '1200px',
+        width: '100%',
+        margin: '0 auto',
+        boxSizing: 'border-box'
+      }}>
         {screen === 'groups' && <GroupsScreen />}
         {screen === 'feed' && activeGroup && <FeedScreen />}
         {screen === 'create_ride' && activeGroup && <CreateRideScreen />}
@@ -822,6 +930,7 @@ function MainApp() {
         {screen === 'profile' && <ProfileScreen />}
         {screen === 'admin' && currentUser.is_admin && <AdminScreen />}
       </div>
+      <BottomNav />
     </div>
   );
 }
@@ -833,6 +942,7 @@ function MainApp() {
 function Header() {
   const { currentUser, setCurrentUser, setScreen, activeGroup, setActiveGroup } = useApp();
   const [showMenu, setShowMenu] = useState(false);
+  const { isMobile } = useWindowSize();
 
   const handleLogout = () => {
     setCurrentUser(null);
@@ -844,7 +954,7 @@ function Header() {
     <div style={{
       background: 'white',
       borderBottom: '1px solid #f0f0f0',
-      padding: '20px 32px',
+      padding: isMobile ? '12px 16px' : '20px 32px',
       display: 'flex',
       justifyContent: 'space-between',
       alignItems: 'center',
@@ -861,32 +971,35 @@ function Header() {
             border: 'none',
             display: 'flex',
             alignItems: 'center',
-            gap: '12px',
+            gap: isMobile ? '8px' : '12px',
             cursor: 'pointer',
             padding: 0
           }}
         >
-          <Logo size={36} color="#000" />
-          <span style={{
-            fontSize: '20px',
-            fontWeight: '700',
-            color: '#000',
-            whiteSpace: 'nowrap',
-            letterSpacing: '-0.5px'
-          }}>
-            Haworthians
-          </span>
+          <Logo size={isMobile ? 28 : 36} color="#000" />
+          {!isMobile && (
+            <span style={{
+              fontSize: '20px',
+              fontWeight: '700',
+              color: '#000',
+              whiteSpace: 'nowrap',
+              letterSpacing: '-0.5px'
+            }}>
+              Haworthians
+            </span>
+          )}
         </button>
         {activeGroup && (
           <>
-            <span style={{ color: '#c0c0c0', flexShrink: 0 }}>/</span>
-            <span style={{ 
-              fontSize: '16px', 
-              color: '#545454', 
-              fontWeight: '400',
+            {!isMobile && <span style={{ color: '#c0c0c0', flexShrink: 0 }}>/</span>}
+            <span style={{
+              fontSize: isMobile ? '14px' : '16px',
+              color: '#545454',
+              fontWeight: isMobile ? '600' : '400',
               overflow: 'hidden',
               textOverflow: 'ellipsis',
-              whiteSpace: 'nowrap'
+              whiteSpace: 'nowrap',
+              marginLeft: isMobile ? '4px' : '0'
             }}>
               {activeGroup.name}
             </span>
@@ -901,7 +1014,7 @@ function Header() {
             display: 'flex',
             alignItems: 'center',
             gap: '8px',
-            padding: '10px 16px',
+            padding: isMobile ? '6px' : '10px 16px',
             background: '#f6f6f6',
             border: 'none',
             borderRadius: '100px',
@@ -909,12 +1022,12 @@ function Header() {
             fontSize: '14px',
             fontWeight: '500',
             color: '#000',
-            maxWidth: '180px'
+            maxWidth: isMobile ? 'auto' : '180px'
           }}
         >
           <div style={{
-            width: '32px',
-            height: '32px',
+            width: isMobile ? '36px' : '32px',
+            height: isMobile ? '36px' : '32px',
             borderRadius: '50%',
             background: '#000',
             color: 'white',
@@ -927,15 +1040,17 @@ function Header() {
           }}>
             {currentUser.name.charAt(0).toUpperCase()}
           </div>
-          <span style={{
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
-            whiteSpace: 'nowrap',
-            display: 'inline-block',
-            maxWidth: '100px'
-          }}>
-            {currentUser.name}
-          </span>
+          {!isMobile && (
+            <span style={{
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap',
+              display: 'inline-block',
+              maxWidth: '100px'
+            }}>
+              {currentUser.name}
+            </span>
+          )}
         </button>
 
         {showMenu && (
@@ -957,75 +1072,79 @@ function Header() {
               right: 0,
               background: 'white',
               border: '1px solid #e0e0e0',
-              borderRadius: '8px',
+              borderRadius: isMobile ? '12px' : '8px',
               boxShadow: '0 4px 16px rgba(0,0,0,0.12)',
-              minWidth: '200px',
+              minWidth: isMobile ? '160px' : '200px',
               zIndex: 100,
               overflow: 'hidden'
             }}>
-              <button
-                onClick={() => {
-                  setScreen('profile');
-                  setShowMenu(false);
-                }}
-                style={{
-                  width: '100%',
-                  padding: '14px 16px',
-                  background: 'none',
-                  border: 'none',
-                  textAlign: 'left',
-                  cursor: 'pointer',
-                  fontSize: '15px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '12px',
-                  color: '#000',
-                  fontWeight: '400',
-                  transition: 'background 0.2s'
-                }}
-                onMouseEnter={(e) => e.target.style.background = '#f6f6f6'}
-                onMouseLeave={(e) => e.target.style.background = 'none'}
-              >
-                <User size={18} />
-                My Profile
-              </button>
+              {!isMobile && (
+                <>
+                  <button
+                    onClick={() => {
+                      setScreen('profile');
+                      setShowMenu(false);
+                    }}
+                    style={{
+                      width: '100%',
+                      padding: '14px 16px',
+                      background: 'none',
+                      border: 'none',
+                      textAlign: 'left',
+                      cursor: 'pointer',
+                      fontSize: '15px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '12px',
+                      color: '#000',
+                      fontWeight: '400',
+                      transition: 'background 0.2s'
+                    }}
+                    onMouseEnter={(e) => e.target.style.background = '#f6f6f6'}
+                    onMouseLeave={(e) => e.target.style.background = 'none'}
+                  >
+                    <User size={18} />
+                    My Profile
+                  </button>
 
-              {currentUser.is_admin && (
-                <button
-                  onClick={() => {
-                    setScreen('admin');
-                    setShowMenu(false);
-                  }}
-                  style={{
-                    width: '100%',
-                    padding: '14px 16px',
-                    background: 'none',
-                    border: 'none',
-                    textAlign: 'left',
-                    cursor: 'pointer',
-                    fontSize: '15px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '12px',
-                    color: '#000',
-                    fontWeight: '400',
-                    transition: 'background 0.2s'
-                  }}
-                  onMouseEnter={(e) => e.target.style.background = '#f6f6f6'}
-                  onMouseLeave={(e) => e.target.style.background = 'none'}
-                >
-                  <Settings size={18} />
-                  Admin Panel
-                </button>
+                  {currentUser.is_admin && (
+                    <button
+                      onClick={() => {
+                        setScreen('admin');
+                        setShowMenu(false);
+                      }}
+                      style={{
+                        width: '100%',
+                        padding: '14px 16px',
+                        background: 'none',
+                        border: 'none',
+                        textAlign: 'left',
+                        cursor: 'pointer',
+                        fontSize: '15px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '12px',
+                        color: '#000',
+                        fontWeight: '400',
+                        transition: 'background 0.2s'
+                      }}
+                      onMouseEnter={(e) => e.target.style.background = '#f6f6f6'}
+                      onMouseLeave={(e) => e.target.style.background = 'none'}
+                    >
+                      <Settings size={18} />
+                      Admin Panel
+                    </button>
+                  )}
+
+                  <div style={{ height: '1px', background: '#e0e0e0', margin: '4px 0' }} />
+                </>
               )}
-
-              <div style={{ height: '1px', background: '#e0e0e0', margin: '4px 0' }} />
 
               <button
                 onClick={handleLogout}
                 style={{
                   width: '100%',
-                  padding: '14px 16px',
+                  padding: isMobile ? '16px' : '14px 16px',
                   background: 'none',
                   border: 'none',
                   textAlign: 'left',
@@ -1041,7 +1160,7 @@ function Header() {
                 onMouseEnter={(e) => e.target.style.background = '#f6f6f6'}
                 onMouseLeave={(e) => e.target.style.background = 'none'}
               >
-                <LogOut size={18} />
+                <LogOut size={isMobile ? 20 : 18} />
                 Sign Out
               </button>
             </div>
@@ -1059,6 +1178,7 @@ function Header() {
 function GroupsScreen() {
   const { currentUser, setActiveGroup, setScreen, refreshKey } = useApp();
   const [groups, setGroups] = useState([]);
+  const { isMobile } = useWindowSize();
 
   useEffect(() => {
     loadGroups();
@@ -1160,6 +1280,7 @@ function FeedScreen() {
   const [pastRides, setPastRides] = useState([]);
   const [filter, setFilter] = useState('open');
   const [ridesWithDetails, setRidesWithDetails] = useState([]);
+  const { isMobile } = useWindowSize();
 
   useEffect(() => {
     loadRides();
@@ -1246,12 +1367,27 @@ function FeedScreen() {
   };
 
   return (
-    <div style={{ maxWidth: '600px', margin: '0 auto', padding: '24px 20px' }}>
-      <div style={{ marginBottom: '24px' }}>
-        <h2 style={{ fontSize: '28px', fontWeight: '700', color: '#000', margin: '0 0 20px 0', letterSpacing: '-0.5px' }}>
+    <div style={{
+      maxWidth: '600px',
+      margin: '0 auto',
+      padding: isMobile ? '16px 0' : '24px 20px'
+    }}>
+      <div style={{ marginBottom: isMobile ? '20px' : '24px' }}>
+        <h2 style={{
+          fontSize: isMobile ? '24px' : '28px',
+          fontWeight: '700',
+          color: '#000',
+          margin: '0 0 20px 0',
+          letterSpacing: '-0.5px'
+        }}>
           Rides
         </h2>
-        <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+        <div style={{
+          display: 'flex',
+          gap: isMobile ? '8px' : '12px',
+          flexWrap: 'wrap',
+          flexDirection: isMobile ? 'column' : 'row'
+        }}>
           <button
             onClick={() => setScreen('create_ride')}
             style={{
@@ -1768,6 +1904,7 @@ function CreateRideScreen() {
 
   const [children, setChildren] = useState([]);
   const [pois, setPois] = useState([]);
+  const { isMobile } = useWindowSize();
 
   useEffect(() => {
     loadData();
@@ -2023,6 +2160,7 @@ function CreateRideScreen() {
 function GroupSettingsScreen() {
   const { currentUser, activeGroup, setScreen } = useApp();
   const [members, setMembers] = useState([]);
+  const { isMobile } = useWindowSize();
 
   useEffect(() => {
     loadMembers();
@@ -2180,6 +2318,7 @@ function ProfileScreen() {
     phone: currentUser.phone,
     home_address: currentUser.home_address
   });
+  const { isMobile } = useWindowSize();
 
   useEffect(() => {
     loadChildren();
@@ -2870,6 +3009,7 @@ function AdminScreen() {
   const [newGroupName, setNewGroupName] = useState('');
   const [newPOI, setNewPOI] = useState({ name: '', address: '' });
   const [editingGroup, setEditingGroup] = useState(null);
+  const { isMobile } = useWindowSize();
   const [editingPOI, setEditingPOI] = useState(null);
   const [editGroupName, setEditGroupName] = useState('');
   const [editPOIData, setEditPOIData] = useState({ name: '', address: '' });
