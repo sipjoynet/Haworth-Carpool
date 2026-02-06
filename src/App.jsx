@@ -1,5 +1,166 @@
-import React, { useState, useEffect, createContext, useContext } from 'react';
-import { User, Users, MapPin, Calendar, Plus, Home, ArrowRight, Check, X, Settings, LogOut, ChevronDown, Phone, Clock, CheckCircle } from 'lucide-react';
+import React, { useState, useEffect, createContext, useContext, useRef } from 'react';
+import { User, Users, MapPin, Calendar, Plus, Home, ArrowRight, Check, X, Settings, LogOut, ChevronDown, Phone, Clock, CheckCircle, ExternalLink } from 'lucide-react';
+
+// ============================================================================
+// LOGO COMPONENT
+// ============================================================================
+
+const Logo = ({ size = 60, color = '#fff' }) => (
+  <svg width={size} height={size} viewBox="0 0 140 140" xmlns="http://www.w3.org/2000/svg">
+    <path d="M 70 10 L 120 30 L 120 80 Q 120 110, 70 130 Q 20 110, 20 80 L 20 30 Z"
+          fill="none" stroke={color} strokeWidth="1.5"/>
+    <line x1="50" y1="45" x2="50" y2="95" stroke={color} strokeWidth="2"/>
+    <line x1="90" y1="45" x2="90" y2="95" stroke={color} strokeWidth="2"/>
+    <rect x="50" y="68" width="40" height="4" fill={color}/>
+  </svg>
+);
+
+// ============================================================================
+// ADDRESS WITH GOOGLE MAPS LINK COMPONENT
+// ============================================================================
+
+const AddressWithLink = ({ address, style = {} }) => {
+  const openInGoogleMaps = () => {
+    const encodedAddress = encodeURIComponent(address);
+    window.open(`https://www.google.com/maps/search/?api=1&query=${encodedAddress}`, '_blank');
+  };
+
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', ...style }}>
+      <span style={{ flex: 1, minWidth: 0 }}>{address}</span>
+      <ExternalLink
+        size={14}
+        style={{
+          color: '#0066cc',
+          cursor: 'pointer',
+          flexShrink: 0,
+          transition: 'color 0.2s'
+        }}
+        onClick={openInGoogleMaps}
+        onMouseEnter={(e) => e.target.style.color = '#004499'}
+        onMouseLeave={(e) => e.target.style.color = '#0066cc'}
+      />
+    </div>
+  );
+};
+
+// ============================================================================
+// MAP COMPONENT FOR PICKUP LOCATIONS
+// ============================================================================
+
+const PickupMap = ({ rides }) => {
+  const mapRef = useRef(null);
+  const [map, setMap] = useState(null);
+  const [geocoder, setGeocoder] = useState(null);
+
+  useEffect(() => {
+    if (!mapRef.current || !window.google) return;
+
+    // Initialize map centered on Haworth, NJ
+    const newMap = new window.google.maps.Map(mapRef.current, {
+      center: { lat: 40.9606, lng: -73.9915 }, // Haworth, NJ
+      zoom: 13,
+      styles: [
+        {
+          featureType: 'all',
+          elementType: 'geometry',
+          stylers: [{ color: '#f5f5f5' }]
+        },
+        {
+          featureType: 'road',
+          elementType: 'geometry',
+          stylers: [{ color: '#ffffff' }]
+        },
+        {
+          featureType: 'water',
+          elementType: 'geometry',
+          stylers: [{ color: '#c9e9f6' }]
+        }
+      ],
+      disableDefaultUI: true,
+      zoomControl: true,
+      mapTypeControl: false,
+      streetViewControl: false,
+      fullscreenControl: true
+    });
+
+    setMap(newMap);
+    setGeocoder(new window.google.maps.Geocoder());
+  }, [mapRef.current, window.google]);
+
+  useEffect(() => {
+    if (!map || !geocoder || !rides || rides.length === 0) return;
+
+    const bounds = new window.google.maps.LatLngBounds();
+
+    rides.forEach(async (ride) => {
+      try {
+        const address = ride.direction === 'home_to_poi'
+          ? ride.requester.home_address
+          : ride.poi.address;
+
+        const result = await geocoder.geocode({ address });
+
+        if (result.results[0]) {
+          const position = result.results[0].geometry.location;
+
+          const marker = new window.google.maps.Marker({
+            position,
+            map,
+            title: ride.direction === 'home_to_poi'
+              ? `Pickup: ${ride.passenger.name}`
+              : `Drop-off: ${ride.passenger.name}`,
+            icon: {
+              path: window.google.maps.SymbolPath.CIRCLE,
+              scale: 10,
+              fillColor: '#000000',
+              fillOpacity: 1,
+              strokeColor: '#ffffff',
+              strokeWeight: 2
+            }
+          });
+
+          const infoWindow = new window.google.maps.InfoWindow({
+            content: `
+              <div style="font-family: Inter, sans-serif; padding: 8px;">
+                <div style="font-weight: 600; margin-bottom: 4px;">${ride.passenger.name}</div>
+                <div style="font-size: 13px; color: #666;">${address}</div>
+                <div style="font-size: 12px; color: #999; margin-top: 4px;">
+                  ${ride.direction === 'home_to_poi' ? 'Pickup' : 'Drop-off'}
+                </div>
+              </div>
+            `
+          });
+
+          marker.addListener('click', () => {
+            infoWindow.open(map, marker);
+          });
+
+          bounds.extend(position);
+        }
+      } catch (error) {
+        console.error('Geocoding error:', error);
+      }
+    });
+
+    if (rides.length > 0) {
+      map.fitBounds(bounds);
+    }
+  }, [map, geocoder, rides]);
+
+  return (
+    <div
+      ref={mapRef}
+      style={{
+        width: '100%',
+        height: '400px',
+        borderRadius: '12px',
+        overflow: 'hidden',
+        boxShadow: '0 1px 3px rgba(0,0,0,0.08)'
+      }}
+    />
+  );
+};
 
 // ============================================================================
 // STORAGE LAYER - Simulates backend with localStorage
@@ -342,10 +503,10 @@ export default function CarpoolApp() {
 
   return (
     <AppContext.Provider value={contextValue}>
-      <div style={{ 
+      <div style={{
         minHeight: '100vh',
-        background: '#f6f6f6',
-        fontFamily: '"UberMove", -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif'
+        background: '#ffffff',
+        fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif'
       }}>
         {!currentUser ? (
           <LoginScreen />
@@ -443,25 +604,21 @@ function LoginScreen() {
         width: '100%',
         boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
       }}>
-        <h1 style={{ 
-          margin: '0 0 8px 0', 
+        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '24px' }}>
+          <Logo size={80} color="#000" />
+        </div>
+        <h1 style={{
+          margin: '0 0 8px 0',
           fontSize: '36px',
           fontWeight: '700',
           color: '#000',
-          letterSpacing: '-0.5px'
+          letterSpacing: '-0.5px',
+          textAlign: 'center'
         }}>
-          Haworthians
+          Haworthians Carpool
         </h1>
-        <p style={{ 
-          margin: '0 0 40px 0',
-          color: '#545454',
-          fontSize: '16px',
-          fontWeight: '400'
-        }}>
-          {isSignup ? 'Create your account' : 'Sign in to continue'}
-        </p>
 
-        <form onSubmit={isSignup ? handleSignup : handleLogin}>
+        <form onSubmit={isSignup ? handleSignup : handleLogin} style={{ marginTop: '40px' }}>
           <div style={{ marginBottom: '16px' }}>
             <input
               type="email"
@@ -686,11 +843,12 @@ function Header() {
   return (
     <div style={{
       background: 'white',
-      borderBottom: '1px solid #e0e0e0',
-      padding: '16px 20px',
+      borderBottom: '1px solid #f0f0f0',
+      padding: '20px 32px',
       display: 'flex',
       justifyContent: 'space-between',
-      alignItems: 'center'
+      alignItems: 'center',
+      boxShadow: '0 1px 2px rgba(0,0,0,0.02)'
     }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1, minWidth: 0 }}>
         <button
@@ -701,16 +859,23 @@ function Header() {
           style={{
             background: 'none',
             border: 'none',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '12px',
+            cursor: 'pointer',
+            padding: 0
+          }}
+        >
+          <Logo size={36} color="#000" />
+          <span style={{
             fontSize: '20px',
             fontWeight: '700',
             color: '#000',
-            cursor: 'pointer',
-            padding: 0,
             whiteSpace: 'nowrap',
             letterSpacing: '-0.5px'
-          }}
-        >
-          Haworthians
+          }}>
+            Haworthians
+          </span>
         </button>
         {activeGroup && (
           <>
@@ -902,7 +1067,7 @@ function GroupsScreen() {
   const loadGroups = async () => {
     const memberships = await DB.query('group_members', m => m.user_id === currentUser.id);
     const groupIds = memberships.map(m => m.group_id);
-    const userGroups = await DB.query('groups', g => groupIds.includes(g.id));
+    const userGroups = await DB.query('groups', g => groupIds.includes(g.id) && !g.archived);
     setGroups(userGroups);
   };
 
@@ -992,23 +1157,76 @@ function GroupsScreen() {
 function FeedScreen() {
   const { currentUser, activeGroup, setScreen, refreshKey } = useApp();
   const [rides, setRides] = useState([]);
+  const [pastRides, setPastRides] = useState([]);
   const [filter, setFilter] = useState('open');
+  const [ridesWithDetails, setRidesWithDetails] = useState([]);
 
   useEffect(() => {
     loadRides();
   }, [activeGroup, refreshKey, filter]);
 
+  const isRideOld = (ride) => {
+    const rideDate = new Date(ride.ride_date);
+    const oneDayAgo = new Date(Date.now() - 86400000); // 24 hours ago
+    return rideDate < oneDayAgo;
+  };
+
+  const loadRideDetails = async (ride) => {
+    const requester = await DB.findOne('users', u => u.id === ride.requester_id);
+    const poi = await DB.findOne('pois', p => p.id === ride.poi_id);
+    let passenger;
+
+    if (ride.passenger_type === 'parent') {
+      passenger = requester;
+    } else {
+      passenger = await DB.findOne('children', c => c.id === ride.passenger_id);
+    }
+
+    return { ...ride, requester, passenger, poi };
+  };
+
   const loadRides = async () => {
     let rideRequests = await DB.query('ride_requests', r => r.group_id === activeGroup.id);
-    
+
     if (filter === 'open') {
-      rideRequests = rideRequests.filter(r => r.status === 'open');
+      rideRequests = rideRequests.filter(r => r.status === 'open' && !isRideOld(r));
     } else if (filter === 'mine') {
       rideRequests = rideRequests.filter(r => r.requester_id === currentUser.id);
+      // Separate current and past rides for "my rides" tab
+      const currentRides = rideRequests.filter(r => !isRideOld(r));
+      const oldRides = rideRequests.filter(r => isRideOld(r));
+
+      // Sort current rides
+      currentRides.sort((a, b) => {
+        if (a.ride_date !== b.ride_date) {
+          return new Date(a.ride_date) - new Date(b.ride_date);
+        }
+        return new Date(b.created_at) - new Date(a.created_at);
+      });
+
+      // Sort past rides (most recent first)
+      oldRides.sort((a, b) => {
+        if (a.ride_date !== b.ride_date) {
+          return new Date(b.ride_date) - new Date(a.ride_date);
+        }
+        return new Date(b.created_at) - new Date(a.created_at);
+      });
+
+      setRides(currentRides);
+      setPastRides(oldRides);
+      setRidesWithDetails([]);
+      return;
     } else if (filter === 'accepted') {
-      rideRequests = rideRequests.filter(r => 
-        r.accepter_id === currentUser.id && (r.status === 'accepted' || r.status === 'completed')
+      rideRequests = rideRequests.filter(r =>
+        r.accepter_id === currentUser.id && (r.status === 'accepted' || r.status === 'completed') && !isRideOld(r)
       );
+
+      // Load details for map view
+      const ridesWithDetailsPromises = rideRequests.map(loadRideDetails);
+      const detailedRides = await Promise.all(ridesWithDetailsPromises);
+      setRidesWithDetails(detailedRides);
+    } else if (filter === 'all') {
+      rideRequests = rideRequests.filter(r => !isRideOld(r));
     }
 
     // Sort by date and created time
@@ -1020,6 +1238,11 @@ function FeedScreen() {
     });
 
     setRides(rideRequests);
+    setPastRides([]);
+
+    if (filter !== 'accepted') {
+      setRidesWithDetails([]);
+    }
   };
 
   return (
@@ -1032,11 +1255,11 @@ function FeedScreen() {
           <button
             onClick={() => setScreen('create_ride')}
             style={{
-              padding: '14px 24px',
+              padding: '16px 28px',
               background: '#000',
               color: 'white',
               border: 'none',
-              borderRadius: '8px',
+              borderRadius: '24px',
               cursor: 'pointer',
               fontSize: '15px',
               fontWeight: '500',
@@ -1045,9 +1268,10 @@ function FeedScreen() {
               gap: '8px',
               flex: '1 1 auto',
               justifyContent: 'center',
-              transition: 'background 0.2s'
+              transition: 'all 0.2s ease',
+              letterSpacing: '-0.2px'
             }}
-            onMouseEnter={(e) => e.target.style.background = '#333'}
+            onMouseEnter={(e) => e.target.style.background = '#1a1a1a'}
             onMouseLeave={(e) => e.target.style.background = '#000'}
           >
             <Plus size={18} />
@@ -1056,11 +1280,11 @@ function FeedScreen() {
           <button
             onClick={() => setScreen('group_settings')}
             style={{
-              padding: '14px 24px',
-              background: 'white',
+              padding: '16px 28px',
+              background: '#f5f5f5',
               color: '#000',
-              border: '1px solid #e0e0e0',
-              borderRadius: '8px',
+              border: 'none',
+              borderRadius: '24px',
               cursor: 'pointer',
               fontSize: '15px',
               fontWeight: '500',
@@ -1069,16 +1293,11 @@ function FeedScreen() {
               gap: '8px',
               flex: '1 1 auto',
               justifyContent: 'center',
-              transition: 'all 0.2s'
+              transition: 'all 0.2s ease',
+              letterSpacing: '-0.2px'
             }}
-            onMouseEnter={(e) => {
-              e.target.style.background = '#f6f6f6';
-              e.target.style.borderColor = '#000';
-            }}
-            onMouseLeave={(e) => {
-              e.target.style.background = 'white';
-              e.target.style.borderColor = '#e0e0e0';
-            }}
+            onMouseEnter={(e) => e.target.style.background = '#e8e8e8'}
+            onMouseLeave={(e) => e.target.style.background = '#f5f5f5'}
           >
             <Settings size={18} />
             Group Info
@@ -1086,7 +1305,7 @@ function FeedScreen() {
         </div>
       </div>
 
-      <div style={{ display: 'flex', gap: '8px', marginBottom: '20px', flexWrap: 'wrap' }}>
+      <div style={{ display: 'flex', gap: '8px', marginBottom: '24px', flexWrap: 'wrap' }}>
         {[
           { key: 'open', label: 'Open' },
           { key: 'accepted', label: 'I Accepted' },
@@ -1097,17 +1316,18 @@ function FeedScreen() {
             key={f.key}
             onClick={() => setFilter(f.key)}
             style={{
-              padding: '10px 20px',
-              background: filter === f.key ? '#000' : 'white',
-              color: filter === f.key ? 'white' : '#545454',
-              border: filter === f.key ? 'none' : '1px solid #e0e0e0',
-              borderRadius: '100px',
+              padding: '12px 24px',
+              background: filter === f.key ? '#171717' : '#f8f8f8',
+              color: filter === f.key ? 'white' : '#666',
+              border: 'none',
+              borderRadius: '20px',
               cursor: 'pointer',
               fontSize: '14px',
-              fontWeight: '500',
+              fontWeight: filter === f.key ? '600' : '500',
               flex: '1 1 auto',
               minWidth: 'fit-content',
-              transition: 'all 0.2s'
+              transition: 'all 0.15s ease',
+              letterSpacing: '-0.2px'
             }}
           >
             {f.label}
@@ -1115,25 +1335,69 @@ function FeedScreen() {
         ))}
       </div>
 
-      {rides.length === 0 ? (
+      {rides.length === 0 && pastRides.length === 0 ? (
         <div style={{
           background: 'white',
           padding: '48px 20px',
-          borderRadius: '8px',
+          borderRadius: '12px',
           textAlign: 'center',
           color: '#545454',
-          border: '1px solid #e0e0e0'
+          boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
         }}>
           <MapPin size={56} style={{ margin: '0 auto 20px', opacity: 0.3, color: '#000' }} />
           <p style={{ fontSize: '16px', margin: '0 0 8px 0', color: '#000', fontWeight: '500' }}>No rides found</p>
           <p style={{ fontSize: '14px', margin: 0 }}>Be the first to request a ride</p>
         </div>
       ) : (
-        <div style={{ display: 'grid', gap: '12px' }}>
-          {rides.map(ride => (
-            <RideCard key={ride.id} ride={ride} onUpdate={loadRides} />
-          ))}
-        </div>
+        <>
+          {filter === 'accepted' && ridesWithDetails.length > 0 && (
+            <div style={{ marginBottom: '24px' }}>
+              <h3 style={{
+                fontSize: '16px',
+                fontWeight: '600',
+                color: '#171717',
+                marginBottom: '12px',
+                letterSpacing: '-0.3px'
+              }}>
+                Pickup Locations
+              </h3>
+              <PickupMap rides={ridesWithDetails} />
+            </div>
+          )}
+
+          {rides.length > 0 && (
+            <div style={{ display: 'grid', gap: '12px', marginBottom: pastRides.length > 0 ? '32px' : '0' }}>
+              {rides.map(ride => (
+                <RideCard key={ride.id} ride={ride} onUpdate={loadRides} />
+              ))}
+            </div>
+          )}
+
+          {pastRides.length > 0 && filter === 'mine' && (
+            <>
+              <div style={{
+                margin: rides.length > 0 ? '32px 0 16px 0' : '0 0 16px 0',
+                paddingBottom: '12px',
+                borderBottom: '1px solid #f0f0f0'
+              }}>
+                <h3 style={{
+                  fontSize: '16px',
+                  fontWeight: '600',
+                  color: '#999',
+                  margin: 0,
+                  letterSpacing: '-0.3px'
+                }}>
+                  Past Trips
+                </h3>
+              </div>
+              <div style={{ display: 'grid', gap: '12px' }}>
+                {pastRides.map(ride => (
+                  <RideCard key={ride.id} ride={ride} onUpdate={loadRides} />
+                ))}
+              </div>
+            </>
+          )}
+        </>
       )}
     </div>
   );
@@ -1240,10 +1504,11 @@ function RideCard({ ride, onUpdate }) {
   return (
     <div style={{
       background: 'white',
-      borderRadius: '8px',
-      padding: '20px',
-      border: '1px solid #e0e0e0',
-      boxShadow: '0 1px 3px rgba(0,0,0,0.04)'
+      borderRadius: '12px',
+      padding: '24px',
+      border: 'none',
+      boxShadow: '0 1px 3px rgba(0,0,0,0.08)',
+      transition: 'all 0.2s ease'
     }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
         <div style={{ flex: 1 }}>
@@ -1342,9 +1607,10 @@ function RideCard({ ride, onUpdate }) {
           <div style={{ fontSize: '15px', fontWeight: '600', color: '#000', marginBottom: '2px' }}>
             {ride.direction === 'home_to_poi' ? 'To' : 'From'} {poi.name}
           </div>
-          <div style={{ fontSize: '13px', color: '#545454', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-            {poi.address}
-          </div>
+          <AddressWithLink
+            address={poi.address}
+            style={{ fontSize: '13px', color: '#545454' }}
+          />
         </div>
       </div>
 
@@ -1365,7 +1631,10 @@ function RideCard({ ride, onUpdate }) {
               <div style={{ fontSize: '12px', color: '#545454', marginBottom: '4px', fontWeight: '500' }}>Requester</div>
               <div style={{ fontSize: '15px', fontWeight: '600', color: '#000', marginBottom: '4px' }}>{requester.name}</div>
               <div style={{ fontSize: '14px', color: '#000', marginBottom: '2px' }}>{requester.phone}</div>
-              <div style={{ fontSize: '13px', color: '#545454' }}>{requester.home_address}</div>
+              <AddressWithLink
+                address={requester.home_address}
+                style={{ fontSize: '13px', color: '#545454' }}
+              />
             </div>
 
             {accepter && (
@@ -1508,7 +1777,7 @@ function CreateRideScreen() {
     const myChildren = await DB.query('children', c => c.parent_id === currentUser.id);
     setChildren(myChildren);
 
-    const allPois = await DB.query('pois');
+    const allPois = await DB.query('pois', p => !p.archived);
     setPois(allPois);
   };
 
@@ -1533,13 +1802,33 @@ function CreateRideScreen() {
       return;
     }
 
+    const passengerId = passengerType === 'parent' ? currentUser.id : parseInt(childId);
+    const selectedPoiId = parseInt(poiId);
+
+    // Check for duplicate ride request
+    const existingRides = await DB.query('ride_requests', r =>
+      r.group_id === activeGroup.id &&
+      r.requester_id === currentUser.id &&
+      r.passenger_type === passengerType &&
+      r.passenger_id === passengerId &&
+      r.direction === direction &&
+      r.poi_id === selectedPoiId &&
+      r.ride_date === rideDate &&
+      r.status !== 'cancelled'
+    );
+
+    if (existingRides.length > 0) {
+      alert('You have already requested an identical ride for this date. Please check your existing rides.');
+      return;
+    }
+
     await DB.create('ride_requests', {
       group_id: activeGroup.id,
       requester_id: currentUser.id,
       passenger_type: passengerType,
-      passenger_id: passengerType === 'parent' ? currentUser.id : parseInt(childId),
+      passenger_id: passengerId,
       direction,
-      poi_id: parseInt(poiId),
+      poi_id: selectedPoiId,
       ride_date: rideDate,
       status: 'open',
       accepter_id: null,
@@ -1848,9 +2137,12 @@ function GroupSettingsScreen() {
 
                 <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px' }}>
                   <MapPin size={14} style={{ color: '#667eea', marginTop: '2px', flexShrink: 0 }} />
-                  <div>
+                  <div style={{ flex: 1 }}>
                     <div style={{ fontSize: '11px', color: '#718096', marginBottom: '2px' }}>Address</div>
-                    <div style={{ fontSize: '14px', color: '#1a202c' }}>{member.home_address}</div>
+                    <AddressWithLink
+                      address={member.home_address}
+                      style={{ fontSize: '14px', color: '#1a202c' }}
+                    />
                   </div>
                 </div>
               </div>
@@ -1878,10 +2170,16 @@ function GroupSettingsScreen() {
 // ============================================================================
 
 function ProfileScreen() {
-  const { currentUser, setScreen, refresh } = useApp();
+  const { currentUser, setCurrentUser, setScreen, refresh } = useApp();
   const [children, setChildren] = useState([]);
   const [showAddChild, setShowAddChild] = useState(false);
   const [newChild, setNewChild] = useState({ name: '', phone: '' });
+  const [isEditing, setIsEditing] = useState(false);
+  const [profileData, setProfileData] = useState({
+    name: currentUser.name,
+    phone: currentUser.phone,
+    home_address: currentUser.home_address
+  });
 
   useEffect(() => {
     loadChildren();
@@ -1919,6 +2217,35 @@ function ProfileScreen() {
     }
   };
 
+  const handleSaveProfile = async (e) => {
+    e.preventDefault();
+    if (!profileData.name || !profileData.phone || !profileData.home_address) {
+      alert('All fields are required');
+      return;
+    }
+
+    const updatedUser = {
+      ...currentUser,
+      name: profileData.name,
+      phone: profileData.phone,
+      home_address: profileData.home_address
+    };
+
+    await DB.update('users', currentUser.id, updatedUser);
+    setCurrentUser(updatedUser);
+    setIsEditing(false);
+    refresh();
+  };
+
+  const handleCancelEdit = () => {
+    setProfileData({
+      name: currentUser.name,
+      phone: currentUser.phone,
+      home_address: currentUser.home_address
+    });
+    setIsEditing(false);
+  };
+
   return (
     <div style={{ maxWidth: '600px', margin: '0 auto' }}>
       <button
@@ -1944,29 +2271,174 @@ function ProfileScreen() {
         boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
         marginBottom: '16px'
       }}>
-        <h2 style={{ fontSize: '24px', fontWeight: '700', color: '#1a202c', marginBottom: '24px' }}>
-          My Profile
-        </h2>
-
-        <div style={{ marginBottom: '24px' }}>
-          <div style={{ fontSize: '14px', color: '#718096', marginBottom: '4px' }}>Name</div>
-          <div style={{ fontSize: '16px', fontWeight: '500', color: '#1a202c' }}>{currentUser.name}</div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+          <h2 style={{ fontSize: '24px', fontWeight: '700', color: '#1a202c', margin: 0 }}>
+            My Profile
+          </h2>
+          {!isEditing && (
+            <button
+              onClick={() => setIsEditing(true)}
+              style={{
+                padding: '8px 16px',
+                background: '#667eea',
+                color: 'white',
+                border: 'none',
+                borderRadius: '8px',
+                cursor: 'pointer',
+                fontSize: '14px',
+                fontWeight: '500'
+              }}
+            >
+              Edit Profile
+            </button>
+          )}
         </div>
 
-        <div style={{ marginBottom: '24px' }}>
-          <div style={{ fontSize: '14px', color: '#718096', marginBottom: '4px' }}>Email</div>
-          <div style={{ fontSize: '16px', fontWeight: '500', color: '#1a202c' }}>{currentUser.email}</div>
-        </div>
+        {isEditing ? (
+          <form onSubmit={handleSaveProfile}>
+            <div style={{ marginBottom: '20px' }}>
+              <label style={{ display: 'block', marginBottom: '6px', fontSize: '14px', fontWeight: '500', color: '#4a5568' }}>
+                Name *
+              </label>
+              <input
+                type="text"
+                value={profileData.name}
+                onChange={(e) => setProfileData({...profileData, name: e.target.value})}
+                style={{
+                  width: '100%',
+                  padding: '10px',
+                  border: '2px solid #e2e8f0',
+                  borderRadius: '8px',
+                  fontSize: '14px',
+                  boxSizing: 'border-box'
+                }}
+                required
+              />
+            </div>
 
-        <div style={{ marginBottom: '24px' }}>
-          <div style={{ fontSize: '14px', color: '#718096', marginBottom: '4px' }}>Phone</div>
-          <div style={{ fontSize: '16px', fontWeight: '500', color: '#1a202c' }}>{currentUser.phone}</div>
-        </div>
+            <div style={{ marginBottom: '20px' }}>
+              <label style={{ display: 'block', marginBottom: '6px', fontSize: '14px', fontWeight: '500', color: '#4a5568' }}>
+                Email (Read-only)
+              </label>
+              <input
+                type="email"
+                value={currentUser.email}
+                disabled
+                style={{
+                  width: '100%',
+                  padding: '10px',
+                  border: '2px solid #e2e8f0',
+                  borderRadius: '8px',
+                  fontSize: '14px',
+                  boxSizing: 'border-box',
+                  background: '#f7fafc',
+                  color: '#718096'
+                }}
+              />
+            </div>
 
-        <div>
-          <div style={{ fontSize: '14px', color: '#718096', marginBottom: '4px' }}>Home Address</div>
-          <div style={{ fontSize: '16px', fontWeight: '500', color: '#1a202c' }}>{currentUser.home_address}</div>
-        </div>
+            <div style={{ marginBottom: '20px' }}>
+              <label style={{ display: 'block', marginBottom: '6px', fontSize: '14px', fontWeight: '500', color: '#4a5568' }}>
+                Phone *
+              </label>
+              <input
+                type="tel"
+                value={profileData.phone}
+                onChange={(e) => setProfileData({...profileData, phone: e.target.value})}
+                style={{
+                  width: '100%',
+                  padding: '10px',
+                  border: '2px solid #e2e8f0',
+                  borderRadius: '8px',
+                  fontSize: '14px',
+                  boxSizing: 'border-box'
+                }}
+                required
+              />
+            </div>
+
+            <div style={{ marginBottom: '24px' }}>
+              <label style={{ display: 'block', marginBottom: '6px', fontSize: '14px', fontWeight: '500', color: '#4a5568' }}>
+                Home Address *
+              </label>
+              <input
+                type="text"
+                value={profileData.home_address}
+                onChange={(e) => setProfileData({...profileData, home_address: e.target.value})}
+                style={{
+                  width: '100%',
+                  padding: '10px',
+                  border: '2px solid #e2e8f0',
+                  borderRadius: '8px',
+                  fontSize: '14px',
+                  boxSizing: 'border-box'
+                }}
+                required
+              />
+            </div>
+
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <button
+                type="submit"
+                style={{
+                  flex: 1,
+                  padding: '10px',
+                  background: '#48bb78',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '8px',
+                  cursor: 'pointer',
+                  fontSize: '14px',
+                  fontWeight: '600'
+                }}
+              >
+                Save Changes
+              </button>
+              <button
+                type="button"
+                onClick={handleCancelEdit}
+                style={{
+                  flex: 1,
+                  padding: '10px',
+                  background: '#e2e8f0',
+                  color: '#4a5568',
+                  border: 'none',
+                  borderRadius: '8px',
+                  cursor: 'pointer',
+                  fontSize: '14px',
+                  fontWeight: '600'
+                }}
+              >
+                Cancel
+              </button>
+            </div>
+          </form>
+        ) : (
+          <>
+            <div style={{ marginBottom: '24px' }}>
+              <div style={{ fontSize: '14px', color: '#718096', marginBottom: '4px' }}>Name</div>
+              <div style={{ fontSize: '16px', fontWeight: '500', color: '#1a202c' }}>{currentUser.name}</div>
+            </div>
+
+            <div style={{ marginBottom: '24px' }}>
+              <div style={{ fontSize: '14px', color: '#718096', marginBottom: '4px' }}>Email</div>
+              <div style={{ fontSize: '16px', fontWeight: '500', color: '#1a202c' }}>{currentUser.email}</div>
+            </div>
+
+            <div style={{ marginBottom: '24px' }}>
+              <div style={{ fontSize: '14px', color: '#718096', marginBottom: '4px' }}>Phone</div>
+              <div style={{ fontSize: '16px', fontWeight: '500', color: '#1a202c' }}>{currentUser.phone}</div>
+            </div>
+
+            <div>
+              <div style={{ fontSize: '14px', color: '#718096', marginBottom: '4px' }}>Home Address</div>
+              <AddressWithLink
+                address={currentUser.home_address}
+                style={{ fontSize: '16px', fontWeight: '500', color: '#1a202c' }}
+              />
+            </div>
+          </>
+        )}
       </div>
 
       <div style={{
@@ -2397,6 +2869,10 @@ function AdminScreen() {
   const [showAddPOI, setShowAddPOI] = useState(false);
   const [newGroupName, setNewGroupName] = useState('');
   const [newPOI, setNewPOI] = useState({ name: '', address: '' });
+  const [editingGroup, setEditingGroup] = useState(null);
+  const [editingPOI, setEditingPOI] = useState(null);
+  const [editGroupName, setEditGroupName] = useState('');
+  const [editPOIData, setEditPOIData] = useState({ name: '', address: '' });
 
   useEffect(() => {
     loadData();
@@ -2439,6 +2915,70 @@ function AdminScreen() {
       loadData();
       refresh();
     }
+  };
+
+  const handleEditGroup = (group) => {
+    setEditingGroup(group.id);
+    setEditGroupName(group.name);
+  };
+
+  const handleSaveGroup = async (groupId) => {
+    if (editGroupName.trim()) {
+      const group = groups.find(g => g.id === groupId);
+      await DB.update('groups', groupId, { ...group, name: editGroupName });
+      setEditingGroup(null);
+      setEditGroupName('');
+      loadData();
+      refresh();
+    }
+  };
+
+  const handleArchiveGroup = async (groupId) => {
+    if (window.confirm('Are you sure you want to archive this group? It will be hidden from users but data will be preserved.')) {
+      const group = groups.find(g => g.id === groupId);
+      await DB.update('groups', groupId, { ...group, archived: true });
+      loadData();
+      refresh();
+    }
+  };
+
+  const handleUnarchiveGroup = async (groupId) => {
+    const group = groups.find(g => g.id === groupId);
+    await DB.update('groups', groupId, { ...group, archived: false });
+    loadData();
+    refresh();
+  };
+
+  const handleEditPOI = (poi) => {
+    setEditingPOI(poi.id);
+    setEditPOIData({ name: poi.name, address: poi.address });
+  };
+
+  const handleSavePOI = async (poiId) => {
+    if (editPOIData.name.trim() && editPOIData.address.trim()) {
+      const poi = pois.find(p => p.id === poiId);
+      await DB.update('pois', poiId, { ...poi, name: editPOIData.name, address: editPOIData.address });
+      setEditingPOI(null);
+      setEditPOIData({ name: '', address: '' });
+      loadData();
+      refresh();
+    }
+  };
+
+  const handleArchivePOI = async (poiId) => {
+    if (window.confirm('Are you sure you want to archive this location? It will be hidden from users but data will be preserved.')) {
+      const poi = pois.find(p => p.id === poiId);
+      await DB.update('pois', poiId, { ...poi, archived: true });
+      loadData();
+      refresh();
+    }
+  };
+
+  const handleUnarchivePOI = async (poiId) => {
+    const poi = pois.find(p => p.id === poiId);
+    await DB.update('pois', poiId, { ...poi, archived: false });
+    loadData();
+    refresh();
   };
 
   return (
@@ -2634,12 +3174,152 @@ function AdminScreen() {
               </form>
             )}
 
-            <h3 style={{ fontSize: '18px', fontWeight: '600', marginBottom: '16px' }}>All Groups</h3>
-            <div style={{ display: 'grid', gap: '12px' }}>
-              {groups.map(group => (
-                <GroupMemberManager key={group.id} group={group} users={users} onUpdate={loadData} />
+            <h3 style={{ fontSize: '18px', fontWeight: '600', marginBottom: '16px' }}>Active Groups</h3>
+            <div style={{ display: 'grid', gap: '12px', marginBottom: '24px' }}>
+              {groups.filter(g => !g.archived).map(group => (
+                <div key={group.id} style={{
+                  padding: '16px',
+                  background: '#f7fafc',
+                  borderRadius: '8px'
+                }}>
+                  {editingGroup === group.id ? (
+                    <div>
+                      <input
+                        type="text"
+                        value={editGroupName}
+                        onChange={(e) => setEditGroupName(e.target.value)}
+                        style={{
+                          width: '100%',
+                          padding: '10px',
+                          border: '2px solid #e2e8f0',
+                          borderRadius: '8px',
+                          fontSize: '14px',
+                          boxSizing: 'border-box',
+                          marginBottom: '12px'
+                        }}
+                      />
+                      <div style={{ display: 'flex', gap: '8px' }}>
+                        <button
+                          onClick={() => handleSaveGroup(group.id)}
+                          style={{
+                            flex: 1,
+                            padding: '8px',
+                            background: '#48bb78',
+                            color: 'white',
+                            border: 'none',
+                            borderRadius: '6px',
+                            cursor: 'pointer',
+                            fontSize: '13px',
+                            fontWeight: '500'
+                          }}
+                        >
+                          Save
+                        </button>
+                        <button
+                          onClick={() => setEditingGroup(null)}
+                          style={{
+                            flex: 1,
+                            padding: '8px',
+                            background: '#e2e8f0',
+                            color: '#4a5568',
+                            border: 'none',
+                            borderRadius: '6px',
+                            cursor: 'pointer',
+                            fontSize: '13px',
+                            fontWeight: '500'
+                          }}
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div>
+                      <div style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        marginBottom: '12px'
+                      }}>
+                        <div style={{ fontWeight: '600', fontSize: '16px' }}>{group.name}</div>
+                        <div style={{ display: 'flex', gap: '8px' }}>
+                          <button
+                            onClick={() => handleEditGroup(group)}
+                            style={{
+                              padding: '6px 12px',
+                              background: '#667eea',
+                              color: 'white',
+                              border: 'none',
+                              borderRadius: '6px',
+                              cursor: 'pointer',
+                              fontSize: '12px',
+                              fontWeight: '500'
+                            }}
+                          >
+                            Edit
+                          </button>
+                          <button
+                            onClick={() => handleArchiveGroup(group.id)}
+                            style={{
+                              padding: '6px 12px',
+                              background: '#ed8936',
+                              color: 'white',
+                              border: 'none',
+                              borderRadius: '6px',
+                              cursor: 'pointer',
+                              fontSize: '12px',
+                              fontWeight: '500'
+                            }}
+                          >
+                            Archive
+                          </button>
+                        </div>
+                      </div>
+                      <GroupMemberManager group={group} users={users} onUpdate={loadData} />
+                    </div>
+                  )}
+                </div>
               ))}
             </div>
+
+            {groups.filter(g => g.archived).length > 0 && (
+              <>
+                <h3 style={{ fontSize: '18px', fontWeight: '600', marginBottom: '16px', color: '#718096' }}>Archived Groups</h3>
+                <div style={{ display: 'grid', gap: '12px' }}>
+                  {groups.filter(g => g.archived).map(group => (
+                    <div key={group.id} style={{
+                      padding: '16px',
+                      background: '#f7fafc',
+                      borderRadius: '8px',
+                      opacity: 0.7
+                    }}>
+                      <div style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center'
+                      }}>
+                        <div style={{ fontWeight: '600', fontSize: '16px', color: '#718096' }}>{group.name}</div>
+                        <button
+                          onClick={() => handleUnarchiveGroup(group.id)}
+                          style={{
+                            padding: '6px 12px',
+                            background: '#48bb78',
+                            color: 'white',
+                            border: 'none',
+                            borderRadius: '6px',
+                            cursor: 'pointer',
+                            fontSize: '12px',
+                            fontWeight: '500'
+                          }}
+                        >
+                          Unarchive
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
           </div>
         )}
 
@@ -2735,15 +3415,187 @@ function AdminScreen() {
               </form>
             )}
 
-            <h3 style={{ fontSize: '18px', fontWeight: '600', marginBottom: '16px' }}>All Locations</h3>
-            <div style={{ display: 'grid', gap: '12px' }}>
-              {pois.map(poi => (
-                <div key={poi.id} style={{ padding: '16px', background: '#f7fafc', borderRadius: '8px' }}>
-                  <div style={{ fontWeight: '600', fontSize: '16px', marginBottom: '4px' }}>{poi.name}</div>
-                  <div style={{ fontSize: '14px', color: '#718096' }}>{poi.address}</div>
+            <h3 style={{ fontSize: '18px', fontWeight: '600', marginBottom: '16px' }}>Active Locations</h3>
+            <div style={{ display: 'grid', gap: '12px', marginBottom: '24px' }}>
+              {pois.filter(p => !p.archived).map(poi => (
+                <div key={poi.id} style={{
+                  padding: '16px',
+                  background: '#f7fafc',
+                  borderRadius: '8px'
+                }}>
+                  {editingPOI === poi.id ? (
+                    <div>
+                      <div style={{ marginBottom: '12px' }}>
+                        <label style={{ display: 'block', marginBottom: '6px', fontSize: '12px', fontWeight: '500', color: '#4a5568' }}>
+                          Location Name
+                        </label>
+                        <input
+                          type="text"
+                          value={editPOIData.name}
+                          onChange={(e) => setEditPOIData({...editPOIData, name: e.target.value})}
+                          style={{
+                            width: '100%',
+                            padding: '10px',
+                            border: '2px solid #e2e8f0',
+                            borderRadius: '8px',
+                            fontSize: '14px',
+                            boxSizing: 'border-box'
+                          }}
+                        />
+                      </div>
+                      <div style={{ marginBottom: '12px' }}>
+                        <label style={{ display: 'block', marginBottom: '6px', fontSize: '12px', fontWeight: '500', color: '#4a5568' }}>
+                          Address
+                        </label>
+                        <input
+                          type="text"
+                          value={editPOIData.address}
+                          onChange={(e) => setEditPOIData({...editPOIData, address: e.target.value})}
+                          style={{
+                            width: '100%',
+                            padding: '10px',
+                            border: '2px solid #e2e8f0',
+                            borderRadius: '8px',
+                            fontSize: '14px',
+                            boxSizing: 'border-box'
+                          }}
+                        />
+                      </div>
+                      <div style={{ display: 'flex', gap: '8px' }}>
+                        <button
+                          onClick={() => handleSavePOI(poi.id)}
+                          style={{
+                            flex: 1,
+                            padding: '8px',
+                            background: '#48bb78',
+                            color: 'white',
+                            border: 'none',
+                            borderRadius: '6px',
+                            cursor: 'pointer',
+                            fontSize: '13px',
+                            fontWeight: '500'
+                          }}
+                        >
+                          Save
+                        </button>
+                        <button
+                          onClick={() => setEditingPOI(null)}
+                          style={{
+                            flex: 1,
+                            padding: '8px',
+                            background: '#e2e8f0',
+                            color: '#4a5568',
+                            border: 'none',
+                            borderRadius: '6px',
+                            cursor: 'pointer',
+                            fontSize: '13px',
+                            fontWeight: '500'
+                          }}
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div>
+                      <div style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'flex-start',
+                        marginBottom: '8px'
+                      }}>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ fontWeight: '600', fontSize: '16px', marginBottom: '4px' }}>{poi.name}</div>
+                          <AddressWithLink
+                            address={poi.address}
+                            style={{ fontSize: '14px', color: '#718096' }}
+                          />
+                        </div>
+                        <div style={{ display: 'flex', gap: '8px', flexShrink: 0, marginLeft: '12px' }}>
+                          <button
+                            onClick={() => handleEditPOI(poi)}
+                            style={{
+                              padding: '6px 12px',
+                              background: '#667eea',
+                              color: 'white',
+                              border: 'none',
+                              borderRadius: '6px',
+                              cursor: 'pointer',
+                              fontSize: '12px',
+                              fontWeight: '500'
+                            }}
+                          >
+                            Edit
+                          </button>
+                          <button
+                            onClick={() => handleArchivePOI(poi.id)}
+                            style={{
+                              padding: '6px 12px',
+                              background: '#ed8936',
+                              color: 'white',
+                              border: 'none',
+                              borderRadius: '6px',
+                              cursor: 'pointer',
+                              fontSize: '12px',
+                              fontWeight: '500'
+                            }}
+                          >
+                            Archive
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
+
+            {pois.filter(p => p.archived).length > 0 && (
+              <>
+                <h3 style={{ fontSize: '18px', fontWeight: '600', marginBottom: '16px', color: '#718096' }}>Archived Locations</h3>
+                <div style={{ display: 'grid', gap: '12px' }}>
+                  {pois.filter(p => p.archived).map(poi => (
+                    <div key={poi.id} style={{
+                      padding: '16px',
+                      background: '#f7fafc',
+                      borderRadius: '8px',
+                      opacity: 0.7
+                    }}>
+                      <div style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'flex-start'
+                      }}>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ fontWeight: '600', fontSize: '16px', marginBottom: '4px', color: '#718096' }}>{poi.name}</div>
+                          <AddressWithLink
+                            address={poi.address}
+                            style={{ fontSize: '14px', color: '#718096' }}
+                          />
+                        </div>
+                        <button
+                          onClick={() => handleUnarchivePOI(poi.id)}
+                          style={{
+                            padding: '6px 12px',
+                            background: '#48bb78',
+                            color: 'white',
+                            border: 'none',
+                            borderRadius: '6px',
+                            cursor: 'pointer',
+                            fontSize: '12px',
+                            fontWeight: '500',
+                            flexShrink: 0,
+                            marginLeft: '12px'
+                          }}
+                        >
+                          Unarchive
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
           </div>
         )}
       </div>
