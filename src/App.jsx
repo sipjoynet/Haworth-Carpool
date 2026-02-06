@@ -579,20 +579,6 @@ function LoginScreen() {
             {isSignup ? 'Already have an account? Sign in' : 'Need an account? Sign up'}
           </button>
         </form>
-
-        <div style={{
-          marginTop: '32px',
-          padding: '16px',
-          background: '#f6f6f6',
-          borderRadius: '4px',
-          fontSize: '12px',
-          color: '#545454',
-          lineHeight: '1.6'
-        }}>
-          <strong style={{ color: '#000' }}>Demo accounts:</strong><br />
-          admin@haworth.com / admin123<br />
-          sarah@email.com / pass123
-        </div>
       </div>
     </div>
   );
