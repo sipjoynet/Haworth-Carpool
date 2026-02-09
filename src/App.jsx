@@ -193,7 +193,29 @@ export default function CarpoolApp() {
           // Get user from database by auth_user_id
           let user = await DB.findOne('users', u => u.auth_user_id === session.user.id);
 
-          // If no user profile exists and this is a Google OAuth user, create a basic profile
+          // If no user found by auth_user_id, check by email (for migration/linking)
+          if (!user) {
+            user = await DB.findOne('users', u => u.email === session.user.email);
+
+            // If user exists with this email but no auth_user_id, link them
+            if (user) {
+              console.log('🔗 Linking existing user to Supabase Auth');
+              try {
+                user = await DB.update('users', user.id, {
+                  auth_user_id: session.user.id,
+                  password: null // Clear plain-text password, now using Auth
+                });
+                console.log('✅ Account linked successfully');
+              } catch (err) {
+                console.error('Failed to link account:', err);
+                alert('Error linking your account. Please contact support.');
+                await supabase.auth.signOut();
+                return;
+              }
+            }
+          }
+
+          // If still no user profile exists and this is a Google OAuth user, create a basic profile
           if (!user && session.user.app_metadata.provider === 'google') {
             console.log('📝 Creating profile for new Google user');
             try {
@@ -212,6 +234,7 @@ export default function CarpoolApp() {
               await supabase.auth.signOut();
             } catch (err) {
               console.error('Failed to create user profile:', err);
+              alert('Error creating your profile. Please contact support.');
               await supabase.auth.signOut();
             }
           } else if (user && user.is_approved) {
