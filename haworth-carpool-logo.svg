@@ -1,0 +1,32 @@
+<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background -->
+  <rect width="512" height="512" fill="#ffffff"/>
+
+  <!-- Shield outline -->
+  <path d="M 256 120 L 356 160 L 356 360 L 256 420 L 156 360 L 156 160 Z"
+        fill="#f8f9fa"
+        stroke="#1a1a1a"
+        stroke-width="8"
+        stroke-linejoin="round"/>
+
+  <!-- Stylized "H" for Haworth -->
+  <g stroke="#667eea" fill="none" stroke-width="16" stroke-linecap="round" stroke-linejoin="round">
+    <!-- Left vertical -->
+    <line x1="216" y1="190" x2="216" y2="310"/>
+    <!-- Right vertical -->
+    <line x1="296" y1="190" x2="296" y2="310"/>
+    <!-- Horizontal crossbar -->
+    <line x1="216" y1="250" x2="296" y2="250"/>
+  </g>
+
+  <!-- Car icon -->
+  <g fill="#667eea" stroke="#667eea" stroke-width="2">
+    <!-- Car body -->
+    <rect x="226" y="330" width="60" height="20" rx="3"/>
+    <!-- Car roof -->
+    <path d="M 236 330 L 246 318 L 266 318 L 276 330 Z"/>
+    <!-- Wheels -->
+    <circle cx="240" cy="352" r="6" fill="#1a1a1a"/>
+    <circle cx="272" cy="352" r="6" fill="#1a1a1a"/>
+  </g>
+</svg>

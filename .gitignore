@@ -30,3 +30,7 @@ lerna-debug.log*
 .env
 .env.local
 .env.production
+
+# OAuth credentials (keep private!)
+OAuth/
+client_secret*.json

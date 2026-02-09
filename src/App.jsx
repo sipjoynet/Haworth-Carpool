@@ -1,6 +1,7 @@
 import React, { useState, useEffect, createContext, useContext, useRef } from 'react';
 import { User, Users, MapPin, Calendar, Plus, Home, ArrowRight, Check, X, Settings, LogOut, ChevronDown, Phone, Clock, CheckCircle, ExternalLink } from 'lucide-react';
 import DB from './lib/database.js';
+import { supabase } from './lib/supabase.js';
 
 // ============================================================================
 // LOGO COMPONENT
@@ -184,6 +185,49 @@ export default function CarpoolApp() {
 
         await DB.init();
         console.log('✅ Database initialized successfully');
+
+        // Check for existing Supabase Auth session
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session) {
+          console.log('✅ Found existing session, checking user profile');
+          // Get user from database by auth_user_id
+          let user = await DB.findOne('users', u => u.auth_user_id === session.user.id);
+
+          // If no user profile exists and this is a Google OAuth user, create a basic profile
+          if (!user && session.user.app_metadata.provider === 'google') {
+            console.log('📝 Creating profile for new Google user');
+            try {
+              user = await DB.create('users', {
+                email: session.user.email,
+                auth_user_id: session.user.id,
+                name: session.user.user_metadata.full_name || session.user.email.split('@')[0],
+                phone: '',
+                home_address: '',
+                is_approved: false,
+                is_admin: false,
+                password: null
+              });
+              console.log('✅ Profile created, awaiting admin approval');
+              alert('Welcome! Your account has been created and is pending admin approval.');
+              await supabase.auth.signOut();
+            } catch (err) {
+              console.error('Failed to create user profile:', err);
+              await supabase.auth.signOut();
+            }
+          } else if (user && user.is_approved) {
+            setCurrentUser(user);
+            setScreen('groups');
+            console.log('✅ User logged in automatically');
+          } else if (user && !user.is_approved) {
+            console.log('⏳ User pending approval');
+            alert('Your account is pending admin approval. Please wait for approval.');
+            await supabase.auth.signOut();
+          } else {
+            console.log('⚠️ No user record found for auth session');
+            await supabase.auth.signOut();
+          }
+        }
+
         setIsInitialized(true);
       } catch (error) {
         console.error('❌ Failed to initialize app:', error);
@@ -331,21 +375,40 @@ function LoginScreen() {
   const handleLogin = async (e) => {
     e.preventDefault();
     setError('');
-    
-    const user = await DB.findOne('users', u => u.email === email && u.password === password);
-    
-    if (!user) {
-      setError('Invalid email or password');
-      return;
-    }
 
-    if (!user.is_approved) {
-      setError('Your account is pending approval');
-      return;
-    }
+    try {
+      // Sign in with Supabase Auth
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
 
-    setCurrentUser(user);
-    setScreen('groups');
+      if (error) {
+        setError('Invalid email or password');
+        return;
+      }
+
+      // Get user from database
+      const user = await DB.findOne('users', u => u.auth_user_id === data.user.id);
+
+      if (!user) {
+        setError('User account not found');
+        await supabase.auth.signOut();
+        return;
+      }
+
+      if (!user.is_approved) {
+        setError('Your account is pending approval');
+        await supabase.auth.signOut();
+        return;
+      }
+
+      setCurrentUser(user);
+      setScreen('groups');
+    } catch (err) {
+      console.error('Login error:', err);
+      setError('An error occurred during login');
+    }
   };
 
   const handleSignup = async (e) => {
@@ -357,28 +420,70 @@ function LoginScreen() {
       return;
     }
 
-    const existingUser = await DB.findOne('users', u => u.email === email);
-    if (existingUser) {
-      setError('Email already registered');
-      return;
+    try {
+      // Check if user already exists
+      const existingUser = await DB.findOne('users', u => u.email === email);
+      if (existingUser) {
+        setError('Email already registered');
+        return;
+      }
+
+      // Sign up with Supabase Auth
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+      });
+
+      if (error) {
+        setError(error.message);
+        return;
+      }
+
+      // Create user profile in database
+      await DB.create('users', {
+        email,
+        auth_user_id: data.user.id,
+        name: signupData.name,
+        phone: signupData.phone,
+        home_address: signupData.home_address,
+        is_approved: false,
+        is_admin: false,
+        password: null // Password stored securely in Supabase Auth
+      });
+
+      // Sign out immediately (user needs admin approval)
+      await supabase.auth.signOut();
+
+      setError('');
+      alert('Account created! Please wait for admin approval.');
+      setIsSignup(false);
+      setEmail('');
+      setPassword('');
+      setSignupData({ name: '', phone: '', home_address: '' });
+    } catch (err) {
+      console.error('Signup error:', err);
+      setError('An error occurred during signup');
     }
+  };
 
-    await DB.create('users', {
-      email,
-      password,
-      name: signupData.name,
-      phone: signupData.phone,
-      home_address: signupData.home_address,
-      is_approved: false,
-      is_admin: false
-    });
+  const handleGoogleSignIn = async () => {
+    try {
+      setError('');
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: window.location.origin,
+        }
+      });
 
-    setError('');
-    alert('Account created! Please wait for admin approval.');
-    setIsSignup(false);
-    setEmail('');
-    setPassword('');
-    setSignupData({ name: '', phone: '', home_address: '' });
+      if (error) {
+        setError('Failed to sign in with Google');
+        console.error('Google sign-in error:', error);
+      }
+    } catch (err) {
+      console.error('Google sign-in error:', err);
+      setError('An error occurred during Google sign-in');
+    }
   };
 
   return (
@@ -558,6 +663,55 @@ function LoginScreen() {
             {isSignup ? 'Sign Up' : 'Sign In'}
           </button>
 
+          {!isSignup && (
+            <>
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '12px',
+                margin: '24px 0 16px',
+                color: '#999',
+                fontSize: '14px'
+              }}>
+                <div style={{ flex: 1, height: '1px', background: '#e0e0e0' }} />
+                <span>or</span>
+                <div style={{ flex: 1, height: '1px', background: '#e0e0e0' }} />
+              </div>
+
+              <button
+                type="button"
+                onClick={handleGoogleSignIn}
+                style={{
+                  width: '100%',
+                  padding: '16px',
+                  background: 'white',
+                  color: '#444',
+                  border: '1px solid #e0e0e0',
+                  borderRadius: '4px',
+                  fontSize: '16px',
+                  fontWeight: '500',
+                  cursor: 'pointer',
+                  marginBottom: '16px',
+                  transition: 'all 0.2s',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '12px'
+                }}
+                onMouseEnter={(e) => e.target.style.background = '#f8f8f8'}
+                onMouseLeave={(e) => e.target.style.background = 'white'}
+              >
+                <svg width="20" height="20" viewBox="0 0 24 24">
+                  <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                  <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                  <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+                  <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+                </svg>
+                Sign in with Google
+              </button>
+            </>
+          )}
+
           <button
             type="button"
             onClick={() => {
@@ -625,7 +779,9 @@ function Header() {
   const [showMenu, setShowMenu] = useState(false);
   const { isMobile } = useWindowSize();
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    // Sign out from Supabase Auth
+    await supabase.auth.signOut();
     setCurrentUser(null);
     setActiveGroup(null);
     setScreen('login');
