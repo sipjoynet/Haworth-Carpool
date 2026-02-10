@@ -173,6 +173,7 @@ export default function CarpoolApp() {
   const [refreshKey, setRefreshKey] = useState(0);
   const [initError, setInitError] = useState(null);
   const [isInitialized, setIsInitialized] = useState(false);
+  const [bypassConstruction, setBypassConstruction] = useState(false);
 
   useEffect(() => {
     const initializeApp = async () => {
@@ -273,6 +274,88 @@ export default function CarpoolApp() {
     refresh,
     refreshKey
   };
+
+  // Check if running in production (not localhost)
+  const isProduction = !window.location.hostname.includes('localhost') &&
+                       !window.location.hostname.includes('127.0.0.1');
+
+  // Show construction message (can be bypassed on localhost only)
+  if (!bypassConstruction) {
+    return (
+      <div style={{
+        minHeight: '100vh',
+        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+        fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '20px'
+      }}>
+        <div style={{
+          maxWidth: '500px',
+          padding: '48px 32px',
+          background: '#ffffff',
+          borderRadius: '16px',
+          textAlign: 'center',
+          boxShadow: '0 20px 60px rgba(0,0,0,0.3)'
+        }}>
+          <Logo size={80} color="#667eea" />
+          <h1 style={{
+            fontSize: '28px',
+            fontWeight: '700',
+            color: '#2d3748',
+            marginTop: '24px',
+            marginBottom: '16px'
+          }}>
+            Under Construction
+          </h1>
+          <p style={{
+            fontSize: '18px',
+            color: '#4a5568',
+            marginBottom: '8px',
+            lineHeight: '1.6'
+          }}>
+            We're upgrading our security features to better protect your data.
+          </p>
+          <p style={{
+            fontSize: '16px',
+            color: '#718096',
+            lineHeight: '1.6'
+          }}>
+            Please check back next weekend!
+          </p>
+          <div style={{
+            marginTop: '32px',
+            paddingTop: '24px',
+            borderTop: '1px solid #e2e8f0'
+          }}>
+            <p style={{ fontSize: '14px', color: '#a0aec0' }}>
+              Thank you for your patience
+            </p>
+          </div>
+          {!isProduction && (
+            <div style={{ marginTop: '24px' }}>
+              <button
+                onClick={() => setBypassConstruction(true)}
+                style={{
+                  padding: '12px 24px',
+                  background: '#667eea',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '8px',
+                  cursor: 'pointer',
+                  fontSize: '14px',
+                  fontWeight: '600'
+                }}
+              >
+                Go to Login
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
 
   // Show error state if initialization failed
   if (initError) {
@@ -400,19 +483,91 @@ function LoginScreen() {
     setError('');
 
     try {
-      // Sign in with Supabase Auth
-      const { data, error } = await supabase.auth.signInWithPassword({
+      // Try to sign in with Supabase Auth
+      let authResult = await supabase.auth.signInWithPassword({
         email,
         password,
       });
 
-      if (error) {
-        setError('Invalid email or password');
-        return;
+      // If auth fails, check if this is an old user with plain-text password
+      if (authResult.error) {
+        console.log('Supabase Auth login failed, checking for legacy user...');
+        console.log('Auth error details:', {
+          message: authResult.error.message,
+          status: authResult.error.status,
+          code: authResult.error.code,
+          name: authResult.error.name
+        });
+
+        // Check if user exists in database with plain-text password
+        const dbUser = await DB.findOne('users', u => u.email === email);
+        console.log('Database user found:', dbUser ? {
+          email: dbUser.email,
+          hasPassword: !!dbUser.password,
+          hasAuthUserId: !!dbUser.auth_user_id,
+          isApproved: dbUser.is_approved
+        } : 'No user found');
+
+        // Case 1: User already linked to Auth but password doesn't work
+        if (dbUser && dbUser.auth_user_id && !dbUser.password) {
+          console.log('⚠️ User already migrated to Supabase Auth');
+          setError('This account uses Google sign-in or has been migrated. Please use "Sign in with Google" or reset your password.');
+          return;
+        }
+
+        // Case 2: Legacy user with plain-text password - needs migration
+        if (dbUser && dbUser.password === password && !dbUser.auth_user_id) {
+          console.log('Found legacy user, migrating to Supabase Auth...');
+
+          // Migrate: Create Supabase Auth account for this user
+          const { data: signupData, error: signupError } = await supabase.auth.signUp({
+            email,
+            password,
+            options: {
+              emailRedirectTo: window.location.origin,
+              data: {
+                migrated_from_legacy: true
+              }
+            }
+          });
+
+          if (signupError) {
+            console.error('Migration signup error:', signupError);
+            setError('Error migrating account. Please contact admin.');
+            return;
+          }
+
+          if (!signupData.user) {
+            console.error('No user returned from signup');
+            setError('Error migrating account. Please contact admin.');
+            return;
+          }
+
+          // Link the auth user to the database user
+          await DB.update('users', dbUser.id, {
+            auth_user_id: signupData.user.id,
+            password: null // Clear plain-text password
+          });
+
+          console.log('✅ User migrated to Supabase Auth');
+
+          // Use the session from signup (don't need to sign in again)
+          // If there's a session, use it; otherwise the user needs to confirm their email
+          if (signupData.session) {
+            authResult = { data: signupData, error: null };
+          } else {
+            // Email confirmation required
+            setError('Account migrated! Please check your email to confirm your account, then try logging in again.');
+            return;
+          }
+        } else {
+          setError('Invalid email or password');
+          return;
+        }
       }
 
       // Get user from database
-      const user = await DB.findOne('users', u => u.auth_user_id === data.user.id);
+      const user = await DB.findOne('users', u => u.auth_user_id === authResult.data.user.id);
 
       if (!user) {
         setError('User account not found');
