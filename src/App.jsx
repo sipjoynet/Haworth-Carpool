@@ -46,6 +46,27 @@ const AddressWithLink = ({ address, style = {} }) => {
   );
 };
 
+const PhoneLink = ({ phone, style = {} }) => {
+  if (!phone) return <span style={style}>No phone number</span>;
+
+  return (
+    <a
+      href={`tel:${phone}`}
+      style={{
+        color: '#0066cc',
+        textDecoration: 'none',
+        cursor: 'pointer',
+        transition: 'color 0.2s',
+        ...style
+      }}
+      onMouseEnter={(e) => e.target.style.color = '#004499'}
+      onMouseLeave={(e) => e.target.style.color = '#0066cc'}
+    >
+      {phone}
+    </a>
+  );
+};
+
 // ============================================================================
 // RESPONSIVE HOOK
 // ============================================================================
@@ -1127,6 +1148,7 @@ function Header() {
 function GroupsScreen() {
   const { currentUser, setActiveGroup, setScreen, refreshKey } = useApp();
   const [groups, setGroups] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
   const { isMobile } = useWindowSize();
 
   useEffect(() => {
@@ -1134,10 +1156,12 @@ function GroupsScreen() {
   }, [currentUser, refreshKey]);
 
   const loadGroups = async () => {
+    setIsLoading(true);
     const memberships = await DB.query('group_members', m => m.user_id === currentUser.id);
     const groupIds = memberships.map(m => m.group_id);
     const userGroups = await DB.query('groups', g => groupIds.includes(g.id) && !g.archived);
     setGroups(userGroups);
+    setIsLoading(false);
   };
 
   const handleSelectGroup = (group) => {
@@ -1165,7 +1189,27 @@ function GroupsScreen() {
         Select a group to view and request rides
       </p>
 
-      {groups.length === 0 ? (
+      {isLoading ? (
+        <div style={{
+          background: 'white',
+          padding: '48px 20px',
+          borderRadius: '8px',
+          textAlign: 'center',
+          color: '#545454',
+          border: '1px solid #e0e0e0'
+        }}>
+          <div style={{
+            width: '40px',
+            height: '40px',
+            border: '3px solid #f0f0f0',
+            borderTop: '3px solid #667eea',
+            borderRadius: '50%',
+            margin: '0 auto 16px',
+            animation: 'spin 0.8s linear infinite'
+          }} />
+          <p style={{ fontSize: '16px', margin: 0, color: '#545454' }}>Loading groups...</p>
+        </div>
+      ) : groups.length === 0 ? (
         <div style={{
           background: 'white',
           padding: '48px 20px',
@@ -1228,6 +1272,7 @@ function FeedScreen() {
   const [rides, setRides] = useState([]);
   const [pastRides, setPastRides] = useState([]);
   const [filter, setFilter] = useState('open');
+  const [isLoading, setIsLoading] = useState(true);
   const { isMobile } = useWindowSize();
 
   useEffect(() => {
@@ -1241,6 +1286,7 @@ function FeedScreen() {
   };
 
   const loadRides = async () => {
+    setIsLoading(true);
     let rideRequests = await DB.query('ride_requests', r => r.group_id === activeGroup.id);
 
     if (filter === 'open') {
@@ -1269,6 +1315,7 @@ function FeedScreen() {
 
       setRides(currentRides);
       setPastRides(oldRides);
+      setIsLoading(false);
       return;
     } else if (filter === 'accepted') {
       rideRequests = rideRequests.filter(r =>
@@ -1288,6 +1335,7 @@ function FeedScreen() {
 
     setRides(rideRequests);
     setPastRides([]);
+    setIsLoading(false);
   };
 
   return (
@@ -1395,7 +1443,27 @@ function FeedScreen() {
         ))}
       </div>
 
-      {rides.length === 0 && pastRides.length === 0 ? (
+      {isLoading ? (
+        <div style={{
+          background: 'white',
+          padding: '48px 20px',
+          borderRadius: '12px',
+          textAlign: 'center',
+          color: '#545454',
+          boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
+        }}>
+          <div style={{
+            width: '40px',
+            height: '40px',
+            border: '3px solid #f0f0f0',
+            borderTop: '3px solid #667eea',
+            borderRadius: '50%',
+            margin: '0 auto 16px',
+            animation: 'spin 0.8s linear infinite'
+          }} />
+          <p style={{ fontSize: '16px', margin: 0, color: '#545454' }}>Loading rides...</p>
+        </div>
+      ) : rides.length === 0 && pastRides.length === 0 ? (
         <div style={{
           background: 'white',
           padding: '48px 20px',
@@ -1571,7 +1639,12 @@ function RideCard({ ride, onUpdate }) {
               {ride.status}
             </span>
             <span style={{ fontSize: '14px', color: '#545454', fontWeight: '400' }}>
-              {new Date(ride.ride_date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
+              {(() => {
+                // Parse ride_date as local date (YYYY-MM-DD) to avoid UTC midnight shifting the day
+                const d = ride.ride_date;
+                const [y, m, d_] = String(d).split(/[-/]/).map(Number);
+                return new Date(y, (m || 1) - 1, d_ || 1).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
+              })()}
             </span>
           </div>
           <div style={{ fontSize: '20px', fontWeight: '600', color: '#000', marginBottom: '4px' }}>
@@ -1675,7 +1748,9 @@ function RideCard({ ride, onUpdate }) {
             <div>
               <div style={{ fontSize: '12px', color: '#545454', marginBottom: '4px', fontWeight: '500' }}>Requester</div>
               <div style={{ fontSize: '15px', fontWeight: '600', color: '#000', marginBottom: '4px' }}>{requester.name}</div>
-              <div style={{ fontSize: '14px', color: '#000', marginBottom: '2px' }}>{requester.phone}</div>
+              <div style={{ fontSize: '14px', marginBottom: '2px' }}>
+                <PhoneLink phone={requester.phone} style={{ fontSize: '14px' }} />
+              </div>
               <AddressWithLink
                 address={requester.home_address}
                 style={{ fontSize: '13px', color: '#545454' }}
@@ -1686,7 +1761,9 @@ function RideCard({ ride, onUpdate }) {
               <div>
                 <div style={{ fontSize: '12px', color: '#545454', marginBottom: '4px', fontWeight: '500' }}>Driver</div>
                 <div style={{ fontSize: '15px', fontWeight: '600', color: '#000', marginBottom: '4px' }}>{accepter.name}</div>
-                <div style={{ fontSize: '14px', color: '#000' }}>{accepter.phone}</div>
+                <div style={{ fontSize: '14px' }}>
+                  <PhoneLink phone={accepter.phone} style={{ fontSize: '14px' }} />
+                </div>
               </div>
             )}
 
@@ -1694,7 +1771,9 @@ function RideCard({ ride, onUpdate }) {
               <div>
                 <div style={{ fontSize: '12px', color: '#545454', marginBottom: '4px', fontWeight: '500' }}>Passenger</div>
                 <div style={{ fontSize: '15px', fontWeight: '600', color: '#000', marginBottom: '4px' }}>{passenger.name}</div>
-                <div style={{ fontSize: '14px', color: '#000' }}>{childPhone || 'No phone number'}</div>
+                <div style={{ fontSize: '14px' }}>
+                  <PhoneLink phone={childPhone} style={{ fontSize: '14px' }} />
+                </div>
               </div>
             )}
           </div>
@@ -2069,6 +2148,7 @@ function CreateRideScreen() {
 function GroupSettingsScreen() {
   const { currentUser, activeGroup, setScreen } = useApp();
   const [members, setMembers] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
   const { isMobile } = useWindowSize();
 
   useEffect(() => {
@@ -2076,10 +2156,12 @@ function GroupSettingsScreen() {
   }, [activeGroup]);
 
   const loadMembers = async () => {
+    setIsLoading(true);
     const memberships = await DB.query('group_members', m => m.group_id === activeGroup.id);
     const memberIds = memberships.map(m => m.user_id);
     const groupMembers = await DB.query('users', u => memberIds.includes(u.id));
     setMembers(groupMembers);
+    setIsLoading(false);
   };
 
   return (
@@ -2127,7 +2209,7 @@ function GroupSettingsScreen() {
           <strong>Privacy Notice:</strong> Phone numbers and home addresses shown below are visible to all members of this group.
         </div>
 
-        <div style={{ 
+        <div style={{
           marginBottom: '12px',
           fontSize: '12px',
           fontWeight: '600',
@@ -2138,8 +2220,26 @@ function GroupSettingsScreen() {
           Group Members
         </div>
 
-        <div style={{ display: 'grid', gap: '12px' }}>
-          {members.map(member => (
+        {isLoading ? (
+          <div style={{
+            padding: '48px 20px',
+            textAlign: 'center',
+            color: '#545454'
+          }}>
+            <div style={{
+              width: '40px',
+              height: '40px',
+              border: '3px solid #f0f0f0',
+              borderTop: '3px solid #667eea',
+              borderRadius: '50%',
+              margin: '0 auto 16px',
+              animation: 'spin 0.8s linear infinite'
+            }} />
+            <p style={{ fontSize: '16px', margin: 0, color: '#545454' }}>Loading members...</p>
+          </div>
+        ) : (
+          <div style={{ display: 'grid', gap: '12px' }}>
+            {members.map(member => (
             <div
               key={member.id}
               style={{
@@ -2178,7 +2278,9 @@ function GroupSettingsScreen() {
                   <Phone size={14} style={{ color: '#667eea', marginTop: '2px', flexShrink: 0 }} />
                   <div>
                     <div style={{ fontSize: '11px', color: '#718096', marginBottom: '2px' }}>Phone</div>
-                    <div style={{ fontSize: '14px', color: '#1a202c' }}>{member.phone}</div>
+                    <div style={{ fontSize: '14px' }}>
+                      <PhoneLink phone={member.phone} style={{ fontSize: '14px' }} />
+                    </div>
                   </div>
                 </div>
 
@@ -2196,8 +2298,9 @@ function GroupSettingsScreen() {
             </div>
           ))}
         </div>
+        )}
 
-        {members.length === 0 && (
+        {!isLoading && members.length === 0 && (
           <div style={{
             padding: '40px 20px',
             textAlign: 'center',
@@ -2475,7 +2578,9 @@ function ProfileScreen() {
 
             <div style={{ marginBottom: '24px' }}>
               <div style={{ fontSize: '14px', color: '#718096', marginBottom: '4px' }}>Phone</div>
-              <div style={{ fontSize: '16px', fontWeight: '500', color: '#1a202c' }}>{currentUser.phone}</div>
+              <div style={{ fontSize: '16px', fontWeight: '500' }}>
+                <PhoneLink phone={currentUser.phone} style={{ fontSize: '16px', fontWeight: '500' }} />
+              </div>
             </div>
 
             <div>
@@ -2624,8 +2729,8 @@ function ProfileScreen() {
                   <div style={{ fontSize: '16px', fontWeight: '500', color: '#1a202c', marginBottom: '4px' }}>
                     {child.name}
                   </div>
-                  <div style={{ fontSize: '14px', color: '#718096' }}>
-                    {child.phone || 'No phone number'}
+                  <div style={{ fontSize: '14px' }}>
+                    <PhoneLink phone={child.phone} style={{ fontSize: '14px' }} />
                   </div>
                 </div>
                 <button
