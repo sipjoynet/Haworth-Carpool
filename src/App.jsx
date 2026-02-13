@@ -68,6 +68,103 @@ const PhoneLink = ({ phone, style = {} }) => {
 };
 
 // ============================================================================
+// GROUP ICON COMPONENT
+// ============================================================================
+
+const GroupIcon = ({ iconUrl, groupName, size = 48 }) => {
+  const [imageError, setImageError] = useState(false);
+
+  // Fallback to colored circle with initials if no icon or error loading
+  if (!iconUrl || imageError) {
+    const initials = groupName
+      ? groupName.split(' ').map(word => word[0]).join('').substring(0, 2).toUpperCase()
+      : '??';
+
+    // Generate a consistent color based on group name
+    const colors = ['#667eea', '#48bb78', '#ed8936', '#f56565', '#9f7aea', '#38b2ac'];
+    const colorIndex = groupName
+      ? groupName.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0) % colors.length
+      : 0;
+
+    return (
+      <div style={{
+        width: size,
+        height: size,
+        borderRadius: '50%',
+        background: colors[colorIndex],
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        color: 'white',
+        fontSize: size * 0.4,
+        fontWeight: '600',
+        flexShrink: 0
+      }}>
+        {initials}
+      </div>
+    );
+  }
+
+  return (
+    <img
+      src={iconUrl}
+      alt={`${groupName} icon`}
+      onError={() => setImageError(true)}
+      style={{
+        width: size,
+        height: size,
+        borderRadius: '50%',
+        objectFit: 'cover',
+        flexShrink: 0
+      }}
+    />
+  );
+};
+
+// ============================================================================
+// IMAGE UPLOAD HELPER
+// ============================================================================
+
+const uploadGroupIcon = async (file, groupId) => {
+  try {
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      throw new Error('File must be an image');
+    }
+
+    // Validate file size (max 2MB)
+    if (file.size > 2 * 1024 * 1024) {
+      throw new Error('Image must be less than 2MB');
+    }
+
+    // Create unique filename
+    const fileExt = file.name.split('.').pop();
+    const fileName = `${groupId}-${Date.now()}.${fileExt}`;
+    const filePath = `${fileName}`;
+
+    // Upload to Supabase Storage
+    const { data, error } = await supabase.storage
+      .from('group-icons')
+      .upload(filePath, file, {
+        cacheControl: '3600',
+        upsert: true
+      });
+
+    if (error) throw error;
+
+    // Get public URL
+    const { data: { publicUrl } } = supabase.storage
+      .from('group-icons')
+      .getPublicUrl(filePath);
+
+    return publicUrl;
+  } catch (error) {
+    console.error('Error uploading group icon:', error);
+    throw error;
+  }
+};
+
+// ============================================================================
 // RESPONSIVE HOOK
 // ============================================================================
 
@@ -626,15 +723,15 @@ function LoginScreen() {
       justifyContent: 'center',
       minHeight: '100vh',
       padding: isMobile ? '16px' : '20px',
-      background: '#000'
+      background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
     }}>
       <div style={{
         background: 'white',
-        borderRadius: '8px',
+        borderRadius: '16px',
         padding: isMobile ? '32px 24px' : '48px 40px',
         maxWidth: '400px',
         width: '100%',
-        boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+        boxShadow: '0 20px 60px rgba(0,0,0,0.3)'
       }}>
         <div style={{ display: 'flex', justifyContent: 'center', marginBottom: isMobile ? '20px' : '24px' }}>
           <Logo size={isMobile ? 64 : 80} color="#000" />
@@ -659,17 +756,25 @@ function LoginScreen() {
               style={{
                 width: '100%',
                 padding: '16px',
-                border: '1px solid #e0e0e0',
-                borderRadius: '4px',
+                border: '2px solid #e8e8e8',
+                borderRadius: '8px',
                 fontSize: '16px',
                 boxSizing: 'border-box',
-                background: '#f6f6f6',
+                background: '#fafafa',
                 outline: 'none',
-                transition: 'all 0.2s'
+                transition: 'all 0.3s'
               }}
               placeholder="Email"
-              onFocus={(e) => e.target.style.background = '#efefef'}
-              onBlur={(e) => e.target.style.background = '#f6f6f6'}
+              onFocus={(e) => {
+                e.target.style.background = '#fff';
+                e.target.style.borderColor = '#667eea';
+                e.target.style.boxShadow = '0 0 0 3px rgba(102, 126, 234, 0.1)';
+              }}
+              onBlur={(e) => {
+                e.target.style.background = '#fafafa';
+                e.target.style.borderColor = '#e8e8e8';
+                e.target.style.boxShadow = 'none';
+              }}
             />
           </div>
 
@@ -681,16 +786,25 @@ function LoginScreen() {
               style={{
                 width: '100%',
                 padding: '16px',
-                border: '1px solid #e0e0e0',
-                borderRadius: '4px',
+                border: '2px solid #e8e8e8',
+                borderRadius: '8px',
                 fontSize: '16px',
                 boxSizing: 'border-box',
-                background: '#f6f6f6',
-                outline: 'none'
+                background: '#fafafa',
+                outline: 'none',
+                transition: 'all 0.3s'
               }}
               placeholder="Password"
-              onFocus={(e) => e.target.style.background = '#efefef'}
-              onBlur={(e) => e.target.style.background = '#f6f6f6'}
+              onFocus={(e) => {
+                e.target.style.background = '#fff';
+                e.target.style.borderColor = '#667eea';
+                e.target.style.boxShadow = '0 0 0 3px rgba(102, 126, 234, 0.1)';
+              }}
+              onBlur={(e) => {
+                e.target.style.background = '#fafafa';
+                e.target.style.borderColor = '#e8e8e8';
+                e.target.style.boxShadow = 'none';
+              }}
             />
           </div>
 
@@ -704,16 +818,25 @@ function LoginScreen() {
                   style={{
                     width: '100%',
                     padding: '16px',
-                    border: '1px solid #e0e0e0',
-                    borderRadius: '4px',
+                    border: '2px solid #e8e8e8',
+                    borderRadius: '8px',
                     fontSize: '16px',
                     boxSizing: 'border-box',
-                    background: '#f6f6f6',
-                    outline: 'none'
+                    background: '#fafafa',
+                    outline: 'none',
+                    transition: 'all 0.3s'
                   }}
                   placeholder="Full Name"
-                  onFocus={(e) => e.target.style.background = '#efefef'}
-                  onBlur={(e) => e.target.style.background = '#f6f6f6'}
+                  onFocus={(e) => {
+                    e.target.style.background = '#fff';
+                    e.target.style.borderColor = '#667eea';
+                    e.target.style.boxShadow = '0 0 0 3px rgba(102, 126, 234, 0.1)';
+                  }}
+                  onBlur={(e) => {
+                    e.target.style.background = '#fafafa';
+                    e.target.style.borderColor = '#e8e8e8';
+                    e.target.style.boxShadow = 'none';
+                  }}
                 />
               </div>
 
@@ -725,16 +848,25 @@ function LoginScreen() {
                   style={{
                     width: '100%',
                     padding: '16px',
-                    border: '1px solid #e0e0e0',
-                    borderRadius: '4px',
+                    border: '2px solid #e8e8e8',
+                    borderRadius: '8px',
                     fontSize: '16px',
                     boxSizing: 'border-box',
-                    background: '#f6f6f6',
-                    outline: 'none'
+                    background: '#fafafa',
+                    outline: 'none',
+                    transition: 'all 0.3s'
                   }}
                   placeholder="Phone Number"
-                  onFocus={(e) => e.target.style.background = '#efefef'}
-                  onBlur={(e) => e.target.style.background = '#f6f6f6'}
+                  onFocus={(e) => {
+                    e.target.style.background = '#fff';
+                    e.target.style.borderColor = '#667eea';
+                    e.target.style.boxShadow = '0 0 0 3px rgba(102, 126, 234, 0.1)';
+                  }}
+                  onBlur={(e) => {
+                    e.target.style.background = '#fafafa';
+                    e.target.style.borderColor = '#e8e8e8';
+                    e.target.style.boxShadow = 'none';
+                  }}
                 />
               </div>
 
@@ -746,16 +878,25 @@ function LoginScreen() {
                   style={{
                     width: '100%',
                     padding: '16px',
-                    border: '1px solid #e0e0e0',
-                    borderRadius: '4px',
+                    border: '2px solid #e8e8e8',
+                    borderRadius: '8px',
                     fontSize: '16px',
                     boxSizing: 'border-box',
-                    background: '#f6f6f6',
-                    outline: 'none'
+                    background: '#fafafa',
+                    outline: 'none',
+                    transition: 'all 0.3s'
                   }}
                   placeholder="Home Address"
-                  onFocus={(e) => e.target.style.background = '#efefef'}
-                  onBlur={(e) => e.target.style.background = '#f6f6f6'}
+                  onFocus={(e) => {
+                    e.target.style.background = '#fff';
+                    e.target.style.borderColor = '#667eea';
+                    e.target.style.boxShadow = '0 0 0 3px rgba(102, 126, 234, 0.1)';
+                  }}
+                  onBlur={(e) => {
+                    e.target.style.background = '#fafafa';
+                    e.target.style.borderColor = '#e8e8e8';
+                    e.target.style.boxShadow = 'none';
+                  }}
                 />
               </div>
             </>
@@ -780,18 +921,25 @@ function LoginScreen() {
             style={{
               width: '100%',
               padding: '16px',
-              background: '#000',
+              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
               color: 'white',
               border: 'none',
-              borderRadius: '4px',
+              borderRadius: '8px',
               fontSize: '16px',
-              fontWeight: '500',
+              fontWeight: '600',
               cursor: 'pointer',
               marginBottom: '16px',
-              transition: 'all 0.2s'
+              transition: 'all 0.3s',
+              boxShadow: '0 4px 15px rgba(102, 126, 234, 0.4)'
             }}
-            onMouseEnter={(e) => e.target.style.background = '#333'}
-            onMouseLeave={(e) => e.target.style.background = '#000'}
+            onMouseEnter={(e) => {
+              e.target.style.transform = 'translateY(-2px)';
+              e.target.style.boxShadow = '0 6px 20px rgba(102, 126, 234, 0.6)';
+            }}
+            onMouseLeave={(e) => {
+              e.target.style.transform = 'translateY(0)';
+              e.target.style.boxShadow = '0 4px 15px rgba(102, 126, 234, 0.4)';
+            }}
           >
             {isSignup ? 'Sign Up' : 'Sign In'}
           </button>
@@ -819,20 +967,29 @@ function LoginScreen() {
                   padding: '16px',
                   background: 'white',
                   color: '#444',
-                  border: '1px solid #e0e0e0',
-                  borderRadius: '4px',
+                  border: '2px solid #e0e0e0',
+                  borderRadius: '8px',
                   fontSize: '16px',
                   fontWeight: '500',
                   cursor: 'pointer',
                   marginBottom: '16px',
-                  transition: 'all 0.2s',
+                  transition: 'all 0.3s',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  gap: '12px'
+                  gap: '12px',
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.05)'
                 }}
-                onMouseEnter={(e) => e.target.style.background = '#f8f8f8'}
-                onMouseLeave={(e) => e.target.style.background = 'white'}
+                onMouseEnter={(e) => {
+                  e.target.style.background = '#f8f8f8';
+                  e.target.style.transform = 'translateY(-2px)';
+                  e.target.style.boxShadow = '0 4px 12px rgba(0,0,0,0.1)';
+                }}
+                onMouseLeave={(e) => {
+                  e.target.style.background = 'white';
+                  e.target.style.transform = 'translateY(0)';
+                  e.target.style.boxShadow = '0 2px 8px rgba(0,0,0,0.05)';
+                }}
               >
                 <svg width="20" height="20" viewBox="0 0 24 24">
                   <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
@@ -1223,37 +1380,42 @@ function GroupsScreen() {
           <p style={{ fontSize: '14px', margin: 0 }}>Contact an admin to join a group</p>
         </div>
       ) : (
-        <div style={{ display: 'grid', gap: '12px' }}>
+        <div style={{ display: 'grid', gap: '16px' }}>
           {groups.map(group => (
             <button
               key={group.id}
               onClick={() => handleSelectGroup(group)}
               style={{
                 background: 'white',
-                border: '1px solid #e0e0e0',
-                borderRadius: '8px',
-                padding: '20px',
+                border: '2px solid #f0f0f0',
+                borderRadius: '12px',
+                padding: '24px',
                 cursor: 'pointer',
                 textAlign: 'left',
-                transition: 'all 0.2s',
-                boxShadow: '0 1px 3px rgba(0,0,0,0.04)'
+                transition: 'all 0.3s',
+                boxShadow: '0 2px 8px rgba(0,0,0,0.06)'
               }}
               onMouseEnter={(e) => {
-                e.currentTarget.style.transform = 'translateY(-2px)';
-                e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.08)';
-                e.currentTarget.style.borderColor = '#000';
+                e.currentTarget.style.transform = 'translateY(-4px)';
+                e.currentTarget.style.boxShadow = '0 8px 24px rgba(102, 126, 234, 0.15)';
+                e.currentTarget.style.borderColor = '#667eea';
               }}
               onMouseLeave={(e) => {
                 e.currentTarget.style.transform = 'translateY(0)';
-                e.currentTarget.style.boxShadow = '0 1px 3px rgba(0,0,0,0.04)';
-                e.currentTarget.style.borderColor = '#e0e0e0';
+                e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.06)';
+                e.currentTarget.style.borderColor = '#f0f0f0';
               }}
             >
-              <div style={{ fontSize: '20px', fontWeight: '600', color: '#000', marginBottom: '4px' }}>
-                {group.name}
-              </div>
-              <div style={{ fontSize: '14px', color: '#545454', fontWeight: '400' }}>
-                Tap to view rides →
+              <div style={{ display: 'flex', gap: '20px', alignItems: 'center' }}>
+                <GroupIcon iconUrl={group.icon_url} groupName={group.name} size={64} />
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: '22px', fontWeight: '600', color: '#000', marginBottom: '6px' }}>
+                    {group.name}
+                  </div>
+                  <div style={{ fontSize: '15px', color: '#667eea', fontWeight: '500' }}>
+                    View rides →
+                  </div>
+                </div>
               </div>
             </button>
           ))}
@@ -1345,15 +1507,18 @@ function FeedScreen() {
       padding: isMobile ? '16px 0' : '24px 20px'
     }}>
       <div style={{ marginBottom: isMobile ? '20px' : '24px' }}>
-        <h2 style={{
-          fontSize: isMobile ? '24px' : '28px',
-          fontWeight: '700',
-          color: '#000',
-          margin: '0 0 20px 0',
-          letterSpacing: '-0.5px'
-        }}>
-          Rides
-        </h2>
+        <div style={{ display: 'flex', gap: '16px', alignItems: 'center', marginBottom: '20px' }}>
+          <GroupIcon iconUrl={activeGroup.icon_url} groupName={activeGroup.name} size={isMobile ? 48 : 56} />
+          <h2 style={{
+            fontSize: isMobile ? '24px' : '28px',
+            fontWeight: '700',
+            color: '#000',
+            margin: 0,
+            letterSpacing: '-0.5px'
+          }}>
+            {activeGroup.name}
+          </h2>
+        </div>
         <div style={{
           display: 'flex',
           gap: isMobile ? '8px' : '12px',
@@ -1364,23 +1529,30 @@ function FeedScreen() {
             onClick={() => setScreen('create_ride')}
             style={{
               padding: '16px 28px',
-              background: '#000',
+              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
               color: 'white',
               border: 'none',
               borderRadius: '24px',
               cursor: 'pointer',
               fontSize: '15px',
-              fontWeight: '500',
+              fontWeight: '600',
               display: 'flex',
               alignItems: 'center',
               gap: '8px',
               flex: '1 1 auto',
               justifyContent: 'center',
-              transition: 'all 0.2s ease',
-              letterSpacing: '-0.2px'
+              transition: 'all 0.3s ease',
+              letterSpacing: '-0.2px',
+              boxShadow: '0 4px 15px rgba(102, 126, 234, 0.3)'
             }}
-            onMouseEnter={(e) => e.target.style.background = '#1a1a1a'}
-            onMouseLeave={(e) => e.target.style.background = '#000'}
+            onMouseEnter={(e) => {
+              e.target.style.transform = 'translateY(-2px)';
+              e.target.style.boxShadow = '0 6px 20px rgba(102, 126, 234, 0.4)';
+            }}
+            onMouseLeave={(e) => {
+              e.target.style.transform = 'translateY(0)';
+              e.target.style.boxShadow = '0 4px 15px rgba(102, 126, 234, 0.3)';
+            }}
           >
             <Plus size={18} />
             Request Ride
@@ -1389,23 +1561,34 @@ function FeedScreen() {
             onClick={() => setScreen('group_settings')}
             style={{
               padding: '16px 28px',
-              background: '#f5f5f5',
-              color: '#000',
-              border: 'none',
+              background: 'white',
+              color: '#667eea',
+              border: '2px solid #667eea',
               borderRadius: '24px',
               cursor: 'pointer',
               fontSize: '15px',
-              fontWeight: '500',
+              fontWeight: '600',
               display: 'flex',
               alignItems: 'center',
               gap: '8px',
               flex: '1 1 auto',
               justifyContent: 'center',
-              transition: 'all 0.2s ease',
-              letterSpacing: '-0.2px'
+              transition: 'all 0.3s ease',
+              letterSpacing: '-0.2px',
+              boxShadow: '0 2px 8px rgba(102, 126, 234, 0.1)'
             }}
-            onMouseEnter={(e) => e.target.style.background = '#e8e8e8'}
-            onMouseLeave={(e) => e.target.style.background = '#f5f5f5'}
+            onMouseEnter={(e) => {
+              e.target.style.background = '#667eea';
+              e.target.style.color = 'white';
+              e.target.style.transform = 'translateY(-2px)';
+              e.target.style.boxShadow = '0 4px 12px rgba(102, 126, 234, 0.2)';
+            }}
+            onMouseLeave={(e) => {
+              e.target.style.background = 'white';
+              e.target.style.color = '#667eea';
+              e.target.style.transform = 'translateY(0)';
+              e.target.style.boxShadow = '0 2px 8px rgba(102, 126, 234, 0.1)';
+            }}
           >
             <Settings size={18} />
             Group Info
@@ -2189,12 +2372,17 @@ function GroupSettingsScreen() {
         boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
       }}>
         <div style={{ marginBottom: '24px' }}>
-          <h2 style={{ fontSize: '24px', fontWeight: '700', color: '#1a202c', marginBottom: '8px' }}>
-            {activeGroup.name}
-          </h2>
-          <p style={{ color: '#718096', fontSize: '14px', marginBottom: '0' }}>
-            {members.length} {members.length === 1 ? 'member' : 'members'}
-          </p>
+          <div style={{ display: 'flex', gap: '16px', alignItems: 'center', marginBottom: '8px' }}>
+            <GroupIcon iconUrl={activeGroup.icon_url} groupName={activeGroup.name} size={56} />
+            <div>
+              <h2 style={{ fontSize: '24px', fontWeight: '700', color: '#1a202c', marginBottom: '4px' }}>
+                {activeGroup.name}
+              </h2>
+              <p style={{ color: '#718096', fontSize: '14px', margin: '0' }}>
+                {members.length} {members.length === 1 ? 'member' : 'members'}
+              </p>
+            </div>
+          </div>
         </div>
 
         <div style={{
@@ -3026,11 +3214,13 @@ function AdminScreen() {
   const [showAddGroup, setShowAddGroup] = useState(false);
   const [showAddPOI, setShowAddPOI] = useState(false);
   const [newGroupName, setNewGroupName] = useState('');
+  const [newGroupIcon, setNewGroupIcon] = useState(null);
   const [newPOI, setNewPOI] = useState({ name: '', address: '' });
   const [editingGroup, setEditingGroup] = useState(null);
   const { isMobile } = useWindowSize();
   const [editingPOI, setEditingPOI] = useState(null);
   const [editGroupName, setEditGroupName] = useState('');
+  const [editGroupIcon, setEditGroupIcon] = useState(null);
   const [editPOIData, setEditPOIData] = useState({ name: '', address: '' });
 
   useEffect(() => {
@@ -3057,11 +3247,24 @@ function AdminScreen() {
   const handleAddGroup = async (e) => {
     e.preventDefault();
     if (newGroupName.trim()) {
-      await DB.create('groups', { name: newGroupName });
-      setNewGroupName('');
-      setShowAddGroup(false);
-      loadData();
-      refresh();
+      try {
+        // Create group first to get ID
+        const newGroup = await DB.create('groups', { name: newGroupName });
+
+        // Upload icon if provided
+        if (newGroupIcon) {
+          const iconUrl = await uploadGroupIcon(newGroupIcon, newGroup.id);
+          await DB.update('groups', newGroup.id, { icon_url: iconUrl });
+        }
+
+        setNewGroupName('');
+        setNewGroupIcon(null);
+        setShowAddGroup(false);
+        loadData();
+        refresh();
+      } catch (error) {
+        alert('Error creating group: ' + error.message);
+      }
     }
   };
 
@@ -3079,16 +3282,30 @@ function AdminScreen() {
   const handleEditGroup = (group) => {
     setEditingGroup(group.id);
     setEditGroupName(group.name);
+    setEditGroupIcon(null);
   };
 
   const handleSaveGroup = async (groupId) => {
     if (editGroupName.trim()) {
-      const group = groups.find(g => g.id === groupId);
-      await DB.update('groups', groupId, { ...group, name: editGroupName });
-      setEditingGroup(null);
-      setEditGroupName('');
-      loadData();
-      refresh();
+      try {
+        const group = groups.find(g => g.id === groupId);
+        const updates = { name: editGroupName };
+
+        // Upload new icon if provided
+        if (editGroupIcon) {
+          const iconUrl = await uploadGroupIcon(editGroupIcon, groupId);
+          updates.icon_url = iconUrl;
+        }
+
+        await DB.update('groups', groupId, { ...group, ...updates });
+        setEditingGroup(null);
+        setEditGroupName('');
+        setEditGroupIcon(null);
+        loadData();
+        refresh();
+      } catch (error) {
+        alert('Error updating group: ' + error.message);
+      }
     }
   };
 
@@ -3289,11 +3506,11 @@ function AdminScreen() {
             </div>
 
             {showAddGroup && (
-              <form onSubmit={handleAddGroup} style={{ 
-                marginBottom: '20px', 
-                padding: '16px', 
-                background: '#f7fafc', 
-                borderRadius: '8px' 
+              <form onSubmit={handleAddGroup} style={{
+                marginBottom: '20px',
+                padding: '16px',
+                background: '#f7fafc',
+                borderRadius: '8px'
               }}>
                 <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: '500', color: '#4a5568' }}>
                   Group Name
@@ -3314,6 +3531,31 @@ function AdminScreen() {
                   }}
                   required
                 />
+
+                <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: '500', color: '#4a5568' }}>
+                  Group Icon (Optional)
+                </label>
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => setNewGroupIcon(e.target.files[0])}
+                  style={{
+                    width: '100%',
+                    padding: '12px',
+                    border: '2px solid #e2e8f0',
+                    borderRadius: '8px',
+                    fontSize: '14px',
+                    boxSizing: 'border-box',
+                    marginBottom: '12px',
+                    background: 'white'
+                  }}
+                />
+                {newGroupIcon && (
+                  <div style={{ fontSize: '12px', color: '#718096', marginBottom: '12px' }}>
+                    Selected: {newGroupIcon.name}
+                  </div>
+                )}
+
                 <button
                   type="submit"
                   style={{
@@ -3343,20 +3585,49 @@ function AdminScreen() {
                 }}>
                   {editingGroup === group.id ? (
                     <div>
+                      <div style={{ display: 'flex', gap: '12px', marginBottom: '12px', alignItems: 'center' }}>
+                        <GroupIcon iconUrl={group.icon_url} groupName={group.name} size={48} />
+                        <div style={{ flex: 1 }}>
+                          <input
+                            type="text"
+                            value={editGroupName}
+                            onChange={(e) => setEditGroupName(e.target.value)}
+                            style={{
+                              width: '100%',
+                              padding: '10px',
+                              border: '2px solid #e2e8f0',
+                              borderRadius: '8px',
+                              fontSize: '14px',
+                              boxSizing: 'border-box'
+                            }}
+                          />
+                        </div>
+                      </div>
+
+                      <label style={{ display: 'block', marginBottom: '8px', fontSize: '13px', fontWeight: '500', color: '#4a5568' }}>
+                        Change Icon (Optional)
+                      </label>
                       <input
-                        type="text"
-                        value={editGroupName}
-                        onChange={(e) => setEditGroupName(e.target.value)}
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => setEditGroupIcon(e.target.files[0])}
                         style={{
                           width: '100%',
                           padding: '10px',
                           border: '2px solid #e2e8f0',
                           borderRadius: '8px',
-                          fontSize: '14px',
+                          fontSize: '13px',
                           boxSizing: 'border-box',
-                          marginBottom: '12px'
+                          marginBottom: '12px',
+                          background: 'white'
                         }}
                       />
+                      {editGroupIcon && (
+                        <div style={{ fontSize: '12px', color: '#718096', marginBottom: '12px' }}>
+                          New icon selected: {editGroupIcon.name}
+                        </div>
+                      )}
+
                       <div style={{ display: 'flex', gap: '8px' }}>
                         <button
                           onClick={() => handleSaveGroup(group.id)}
@@ -3396,11 +3667,12 @@ function AdminScreen() {
                     <div>
                       <div style={{
                         display: 'flex',
-                        justifyContent: 'space-between',
+                        gap: '12px',
                         alignItems: 'center',
                         marginBottom: '12px'
                       }}>
-                        <div style={{ fontWeight: '600', fontSize: '16px' }}>{group.name}</div>
+                        <GroupIcon iconUrl={group.icon_url} groupName={group.name} size={48} />
+                        <div style={{ flex: 1, fontWeight: '600', fontSize: '16px' }}>{group.name}</div>
                         <div style={{ display: 'flex', gap: '8px' }}>
                           <button
                             onClick={() => handleEditGroup(group)}
