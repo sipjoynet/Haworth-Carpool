@@ -1,5 +1,5 @@
 import React, { useState, useEffect, createContext, useContext, useRef } from 'react';
-import { User, Users, MapPin, Calendar, Plus, Home, ArrowRight, Check, X, Settings, LogOut, ChevronDown, Phone, Clock, CheckCircle, ExternalLink } from 'lucide-react';
+import { User, Users, MapPin, Calendar, Plus, Home, ArrowRight, Check, X, Settings, LogOut, ChevronDown, Phone, Clock, CheckCircle, ExternalLink, Shield } from 'lucide-react';
 import DB from './lib/database.js';
 import { supabase } from './lib/supabase.js';
 
@@ -1029,6 +1029,90 @@ function LoginScreen() {
 }
 
 // ============================================================================
+// SECURITY UPDATE BANNER
+// ============================================================================
+
+const SECURITY_BANNER_VERSION = '2026-02';
+
+function SecurityUpdateBanner() {
+  const [dismissed, setDismissed] = useState(() => {
+    try {
+      return localStorage.getItem('security_banner_dismissed') === SECURITY_BANNER_VERSION;
+    } catch {
+      return false;
+    }
+  });
+
+  if (dismissed) return null;
+
+  const handleDismiss = () => {
+    setDismissed(true);
+    try {
+      localStorage.setItem('security_banner_dismissed', SECURITY_BANNER_VERSION);
+    } catch {
+      // Ignore storage errors
+    }
+  };
+
+  return (
+    <div style={{
+      background: 'linear-gradient(135deg, #e8f5e9 0%, #e3f2fd 100%)',
+      border: '1px solid #a5d6a7',
+      borderRadius: '12px',
+      padding: '20px',
+      marginBottom: '20px',
+      position: 'relative'
+    }}>
+      <button
+        onClick={handleDismiss}
+        aria-label="Dismiss"
+        style={{
+          position: 'absolute',
+          top: '12px',
+          right: '12px',
+          background: 'none',
+          border: 'none',
+          cursor: 'pointer',
+          color: '#666',
+          padding: '4px',
+          lineHeight: 1
+        }}
+      >
+        <X size={18} />
+      </button>
+
+      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px' }}>
+        <Shield size={22} color="#2e7d32" />
+        <h3 style={{ margin: 0, fontSize: '16px', fontWeight: '700', color: '#1b5e20' }}>
+          Security Update — February 2026
+        </h3>
+      </div>
+
+      <p style={{ margin: '0 0 12px 0', fontSize: '14px', color: '#333', lineHeight: '1.5' }}>
+        We've made important improvements to keep your account and data safe:
+      </p>
+
+      <ul style={{
+        margin: '0 0 12px 0',
+        paddingLeft: '20px',
+        fontSize: '14px',
+        color: '#333',
+        lineHeight: '1.8'
+      }}>
+        <li><strong>Encrypted passwords</strong> — All passwords are now securely hashed. Plain-text passwords are no longer stored.</li>
+        <li><strong>Google Sign-In</strong> — You can now sign in with your Google account for faster, more secure access.</li>
+        <li><strong>Improved session security</strong> — Sessions use industry-standard tokens that refresh automatically.</li>
+        <li><strong>Stronger privacy controls</strong> — Contact details are only visible to members of your groups, and children's phone numbers are hidden until a ride is accepted.</li>
+      </ul>
+
+      <p style={{ margin: 0, fontSize: '13px', color: '#555', lineHeight: '1.5' }}>
+        No action is needed on your part. If you previously signed in with a password, your account has been automatically upgraded. Questions? Reach out to your group admin.
+      </p>
+    </div>
+  );
+}
+
+// ============================================================================
 // MAIN APP
 // ============================================================================
 
@@ -1048,6 +1132,7 @@ function MainApp() {
         margin: '0 auto',
         boxSizing: 'border-box'
       }}>
+        {screen === 'groups' && <SecurityUpdateBanner />}
         {screen === 'groups' && <GroupsScreen />}
         {screen === 'feed' && activeGroup && <FeedScreen />}
         {screen === 'create_ride' && activeGroup && <CreateRideScreen />}
